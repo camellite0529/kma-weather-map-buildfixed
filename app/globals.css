@@ -274,7 +274,7 @@ body {
 
 .precip-track {
   position: relative;
-  height: 6.5mm;
+  height: 10mm;
   border-left: 1px solid var(--line);
   background-image: repeating-linear-gradient(
     to right,
@@ -292,33 +292,65 @@ body {
 }
 
 .precip-bar-am {
-  top: 0.5mm;
-  height: 2.2mm;
+  top: 1mm;
+  height: 3.4mm;
   background: var(--am);
 }
 
 .precip-bar-pm {
-  bottom: 0.5mm;
-  height: 2.2mm;
+  bottom: 1mm;
+  height: 3.4mm;
   background: var(--pm);
+}
+
+.precip-value {
+  position: absolute;
+  right: -9mm;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 2.6mm;
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+}
+
+.precip-value-zero {
+  position: absolute;
+  right: 0;
+  font-size: 2.4mm;
+  font-weight: 700;
+  color: #777;
+  white-space: nowrap;
+}
+
+.precip-value-am-zero {
+  top: 0.8mm;
+}
+
+.precip-value-pm-zero {
+  bottom: 0.8mm;
+}
+
+.forecast-card {
+  padding: 3mm;
 }
 
 .forecast-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 3mm;
+  gap: 2mm;
 }
 
 .compact-table {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 3mm;
+  border-radius: 2.4mm;
   overflow: hidden;
 }
 
 .compact-table-title {
-  padding: 2mm 2.5mm;
-  font-size: 3.2mm;
+  padding: 1.4mm 2mm;
+  font-size: 3mm;
   font-weight: 700;
   border-bottom: 1px solid var(--line);
   background: #fafafa;
@@ -327,19 +359,26 @@ body {
 .compact-table table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .compact-table th,
 .compact-table td {
-  padding: 1.7mm 2.5mm;
+  padding: 1.1mm 1.8mm;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 2.9mm;
+  font-size: 2.55mm;
+  line-height: 1.2;
   text-align: left;
+  white-space: nowrap;
 }
 
 .compact-table th {
-  width: 16mm;
+  width: 10mm;
   font-weight: 700;
+}
+
+.compact-table td {
+  letter-spacing: -0.02em;
 }
 
 .compact-table tr:last-child th,
@@ -441,5 +480,24 @@ body {
 
   .marker-line {
     font-size: 11px;
+  }
+
+  .precip-track {
+    height: 32px;
+  }
+
+  .precip-bar-am {
+    top: 4px;
+    height: 11px;
+  }
+
+  .precip-bar-pm {
+    bottom: 4px;
+    height: 11px;
+  }
+
+  .precip-value {
+    right: -34px;
+    font-size: 10px;
   }
 }

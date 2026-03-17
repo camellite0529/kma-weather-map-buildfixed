@@ -41,9 +41,15 @@ function tempText(value: number | null) {
   return value == null ? "-" : `${Math.round(value)}°`;
 }
 
-function percentValue(value: number | null) {
+function displayPercent(value: number | null) {
   if (value == null || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function barWidthPercent(value: number | null) {
+  const actual = displayPercent(value);
+  if (actual === 0) return 0;
+  return Math.max(8, actual);
 }
 
 function CompactDayTable({
@@ -102,23 +108,43 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
       </div>
 
       <div className="precip-chart">
-        {rows.map((row) => (
-          <div key={`precip-${row.city}`} className="precip-row">
-            <div className="precip-label">{row.city}</div>
-            <div className="precip-track">
-              <div
-                className="precip-bar precip-bar-am"
-                style={{ width: `${percentValue(row.tomorrow.amPop)}%` }}
-                title={`오전 ${percentValue(row.tomorrow.amPop)}%`}
-              />
-              <div
-                className="precip-bar precip-bar-pm"
-                style={{ width: `${percentValue(row.tomorrow.pmPop)}%` }}
-                title={`오후 ${percentValue(row.tomorrow.pmPop)}%`}
-              />
+        {rows.map((row) => {
+          const amDisplay = displayPercent(row.tomorrow.amPop);
+          const pmDisplay = displayPercent(row.tomorrow.pmPop);
+          const amWidth = barWidthPercent(row.tomorrow.amPop);
+          const pmWidth = barWidthPercent(row.tomorrow.pmPop);
+
+          return (
+            <div key={`precip-${row.city}`} className="precip-row">
+              <div className="precip-label">{row.city}</div>
+              <div className="precip-track">
+                {amWidth > 0 ? (
+                  <div
+                    className="precip-bar precip-bar-am"
+                    style={{ width: `${amWidth}%` }}
+                    title={`오전 ${amDisplay}%`}
+                  >
+                    <span className="precip-value">{amDisplay}%</span>
+                  </div>
+                ) : (
+                  <div className="precip-value precip-value-zero precip-value-am-zero">0%</div>
+                )}
+
+                {pmWidth > 0 ? (
+                  <div
+                    className="precip-bar precip-bar-pm"
+                    style={{ width: `${pmWidth}%` }}
+                    title={`오후 ${pmDisplay}%`}
+                  >
+                    <span className="precip-value">{pmDisplay}%</span>
+                  </div>
+                ) : (
+                  <div className="precip-value precip-value-zero precip-value-pm-zero">0%</div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
