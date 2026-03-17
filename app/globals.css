@@ -120,8 +120,8 @@ body {
 
 .map-stage {
   position: relative;
-  width: 100%;
-  aspect-ratio: 1000 / 1400;
+  width: 80%;
+  aspect-ratio: 1334 / 2116;
   border-radius: 22px;
   overflow: hidden;
   background: var(--panel-2);
