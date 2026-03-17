@@ -84,7 +84,7 @@ export const MAP_MARKER_POSITIONS: Record<string, MarkerPosition> = {
   속초: { x: 61.0, y: 8.4 },
   강릉: { x: 74.0, y: 19.0 },
   홍성: { x: 20.0, y: 39.0 },
-  세종: { x: 31.8, y: 41.6 },
+  세종: { x: 32.0, y: 44.0 },
   청주: { x: 42.0, y: 38.0 },
   안동: { x: 66.0, y: 42.0 },
   대전: { x: 35.0, y: 50.0 },
