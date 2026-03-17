@@ -57,7 +57,7 @@ export const MAP_CITIES: City[] = [
   { name: "여수", lat: 34.7604, lon: 127.6622 },
   { name: "제주", lat: 33.4996, lon: 126.5312 },
   { name: "울릉도", lat: 37.484, lon: 130.9057 },
-  { name: "독도", lat: 37.2411, lon: 131.8644 }
+  { name: "독도", lat: 37.2411, lon: 131.8644 },
 ];
 
 export const TABLE_CITIES = [
@@ -73,17 +73,15 @@ export const TABLE_CITIES = [
   "부산",
   "울산",
   "대구",
-  "제주"
+  "제주",
 ];
 
-// 사진 기준 고정 좌표입니다.
-// 배경 이미지가 바뀌면 이 값을 이미지에 맞게 직접 조정하면 됩니다.
 export const MAP_MARKER_POSITIONS: Record<string, MarkerPosition> = {
   서울: { x: 31.5, y: 21.5 },
   인천: { x: 23.8, y: 23.2 },
   수원: { x: 30.8, y: 28.5 },
   춘천: { x: 42.4, y: 20.2 },
-  속초: { x: 59.2, y: 15.4 },
+  속초: { x: 57.2, y: 18.4 },
   강릉: { x: 58.6, y: 24.0 },
   홍성: { x: 21.6, y: 38.8 },
   세종: { x: 31.8, y: 41.6 },
@@ -99,9 +97,9 @@ export const MAP_MARKER_POSITIONS: Record<string, MarkerPosition> = {
   광주: { x: 22.6, y: 67.0 },
   목포: { x: 14.0, y: 75.2 },
   여수: { x: 35.2, y: 75.4 },
-  제주: { x: 38, y: 93 },
-  울릉도: { x: 76.6, y: 93 },
-  독도: { x: 88.0, y: 93 }
+  제주: { x: 15.8, y: 92.2 },
+  울릉도: { x: 76.6, y: 35.8 },
+  독도: { x: 88.0, y: 33.0 },
 };
 
 function getKstParts(date = new Date()) {
@@ -112,17 +110,18 @@ function getKstParts(date = new Date()) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false
+    hour12: false,
   }).formatToParts(date);
 
-  const pick = (type: string) => parts.find((p) => p.type === type)?.value ?? "00";
+  const pick = (type: string) =>
+    parts.find((p) => p.type === type)?.value ?? "00";
 
   return {
     year: pick("year"),
     month: pick("month"),
     day: pick("day"),
     hour: pick("hour"),
-    minute: pick("minute")
+    minute: pick("minute"),
   };
 }
 
@@ -136,22 +135,23 @@ export function getBaseDateTime() {
   if (selected) {
     return {
       baseDate: `${year}${month}${day}`,
-      baseTime: String(selected).padStart(4, "0")
+      baseTime: String(selected).padStart(4, "0"),
     };
   }
 
   const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const y = getKstParts(yesterday);
-
   return {
     baseDate: `${y.year}${y.month}${y.day}`,
-    baseTime: "2300"
+    baseTime: "2300",
   };
 }
 
 export function getTargetDate(offsetDays: number) {
   const now = new Date();
-  const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const kstNow = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+  );
   kstNow.setDate(kstNow.getDate() + offsetDays);
 
   const yyyy = kstNow.getFullYear();
@@ -179,19 +179,11 @@ export function ptyCodeToText(value: string | number | null | undefined) {
   return null;
 }
 
-export function summarizeDailyWeather(items: ForecastItem[], targetDate: string): DailyWeather {
+function pickRepresentativeWeather(
+  items: ForecastItem[],
+  targetDate: string,
+): string | null {
   const dayItems = items.filter((item) => item.fcstDate === targetDate);
-
-  const tmn = dayItems.find((item) => item.category === "TMN")?.fcstValue;
-  const tmx = dayItems.find((item) => item.category === "TMX")?.fcstValue;
-
-  const tmpValues = dayItems
-    .filter((item) => item.category === "TMP")
-    .map((item) => Number(item.fcstValue))
-    .filter((n) => Number.isFinite(n));
-
-  const minTemp = tmn != null ? Number(tmn) : tmpValues.length ? Math.min(...tmpValues) : null;
-  const maxTemp = tmx != null ? Number(tmx) : tmpValues.length ? Math.max(...tmpValues) : null;
 
   const ptyItems = dayItems.filter((item) => item.category === "PTY");
   const nonZeroPtyItems = ptyItems.filter((item) => String(item.fcstValue) !== "0");
@@ -208,32 +200,59 @@ export function summarizeDailyWeather(items: ForecastItem[], targetDate: string)
     return diffA - diffB;
   })[0];
 
-  const popItems = dayItems
-    .filter((item) => item.category === "POP")
+  return ptyCodeToText(pickedPty?.fcstValue) ?? skyCodeToText(pickedSky?.fcstValue);
+}
+
+function getPrecipCategoryItems(dayItems: ForecastItem[]) {
+  // Some examples/documentation use POP, while some integrations refer to ST.
+  // Support both so the chart still works even if the upstream payload naming differs.
+  return dayItems.filter(
+    (item) => item.category === "POP" || item.category === "ST",
+  );
+}
+
+export function summarizeDailyWeather(
+  items: ForecastItem[],
+  targetDate: string,
+): DailyWeather {
+  const dayItems = items.filter((item) => item.fcstDate === targetDate);
+
+  const tmn = dayItems.find((item) => item.category === "TMN")?.fcstValue;
+  const tmx = dayItems.find((item) => item.category === "TMX")?.fcstValue;
+
+  const tmpValues = dayItems
+    .filter((item) => item.category === "TMP")
+    .map((item) => Number(item.fcstValue))
+    .filter((n) => Number.isFinite(n));
+
+  const minTemp =
+    tmn != null ? Number(tmn) : tmpValues.length ? Math.min(...tmpValues) : null;
+  const maxTemp =
+    tmx != null ? Number(tmx) : tmpValues.length ? Math.max(...tmpValues) : null;
+
+  const precipItems = getPrecipCategoryItems(dayItems)
     .map((item) => ({
       time: Number(item.fcstTime),
       value: Number(item.fcstValue),
     }))
     .filter((item) => Number.isFinite(item.time) && Number.isFinite(item.value));
 
-  const amValues = popItems
+  const amValues = precipItems
     .filter((item) => item.time >= 600 && item.time < 1200)
     .map((item) => item.value);
 
-  const pmValues = popItems
+  const pmValues = precipItems
     .filter((item) => item.time >= 1200 && item.time <= 2100)
     .map((item) => item.value);
 
   const amPop = amValues.length ? Math.max(...amValues) : null;
   const pmPop = pmValues.length ? Math.max(...pmValues) : null;
 
-  const displaySky = ptyCodeToText(pickedPty?.fcstValue) ?? skyCodeToText(pickedSky?.fcstValue);
-
   return {
     date: targetDate,
     minTemp,
     maxTemp,
-    sky: displaySky,
+    sky: pickRepresentativeWeather(items, targetDate),
     amPop,
     pmPop,
   };
@@ -257,11 +276,13 @@ export function latLonToGrid(lat: number, lon: number) {
   const olon = OLON * DEGRAD;
   const olat = OLAT * DEGRAD;
 
-  let sn = Math.tan(Math.PI * 0.25 + slat2 * 0.5) / Math.tan(Math.PI * 0.25 + slat1 * 0.5);
+  let sn =
+    Math.tan(Math.PI * 0.25 + slat2 * 0.5) /
+    Math.tan(Math.PI * 0.25 + slat1 * 0.5);
   sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(sn);
 
   let sf = Math.tan(Math.PI * 0.25 + slat1 * 0.5);
-  sf = Math.pow(sf, sn) * Math.cos(slat1) / sn;
+  sf = (Math.pow(sf, sn) * Math.cos(slat1)) / sn;
 
   let ro = Math.tan(Math.PI * 0.25 + olat * 0.5);
   ro = re * sf / Math.pow(ro, sn);
@@ -286,6 +307,6 @@ export function getMarkerPosition(city: string) {
 
   return {
     left: `${position.x}%`,
-    top: `${position.y}%`
+    top: `${position.y}%`,
   };
 }

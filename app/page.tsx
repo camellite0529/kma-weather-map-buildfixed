@@ -17,7 +17,7 @@ const PRECIP_CITIES = [
   "울산",
   "대구",
   "제주",
-];
+] as const;
 
 type DailyWeather = {
   date: string;
@@ -109,10 +109,12 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
               <div
                 className="precip-bar precip-bar-am"
                 style={{ width: `${percentValue(row.tomorrow.amPop)}%` }}
+                title={`오전 ${percentValue(row.tomorrow.amPop)}%`}
               />
               <div
                 className="precip-bar precip-bar-pm"
                 style={{ width: `${percentValue(row.tomorrow.pmPop)}%` }}
+                title={`오후 ${percentValue(row.tomorrow.pmPop)}%`}
               />
             </div>
           </div>
@@ -145,8 +147,12 @@ export default async function Page() {
             </div>
 
             <div className="print-meta">
-              <div>발표기준: {weather.base.baseDate} {weather.base.baseTime}</div>
-              <div>업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}</div>
+              <div>
+                발표기준: {weather.base.baseDate} {weather.base.baseTime}
+              </div>
+              <div>
+                업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
+              </div>
               <div>표시 도시: {weather.data.length}개</div>
             </div>
           </header>
@@ -222,7 +228,8 @@ export default async function Page() {
       </main>
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "날씨 정보를 불러오지 못했습니다.";
+    const message =
+      error instanceof Error ? error.message : "날씨 정보를 불러오지 못했습니다.";
 
     return (
       <main className="page">
