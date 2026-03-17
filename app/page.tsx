@@ -165,7 +165,7 @@ export default async function Page() {
         <div className="a4-sheet">
           <header className="print-head">
   <div>
-    <h1>내일·모레·글피 날씨</h1>
+    <h1>지면용 오늘의 날씨</h1>
   </div>
 
   <div className="print-meta">
@@ -248,8 +248,8 @@ export default async function Page() {
                 </div>
 
                 <div className="forecast-grid">
-                  <CompactDayTable title="모레" rows={tableRows} kind="dayAfterTomorrow" />
-                  <CompactDayTable title="글피" rows={tableRows} kind="threeDaysLater" />
+                  <CompactDayTable title="내일" rows={tableRows} kind="dayAfterTomorrow" />
+                  <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
                 </div>
               </section>
             </div>
