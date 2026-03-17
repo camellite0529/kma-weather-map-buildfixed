@@ -1,5 +1,6 @@
 import { TABLE_CITIES, getMarkerPosition } from "@/lib/kma";
 import { getWeatherData } from "@/lib/weather";
+import { getAstroTimes } from "@/lib/astro";
 
 export const dynamic = "force-dynamic";
 
@@ -153,6 +154,7 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
 export default async function Page() {
   try {
     const weather = await getWeatherData();
+    const astro = await getAstroTimes();
 
     const tomorrowMap = weather.data;
     const tableRows = weather.data.filter((item) => TABLE_CITIES.includes(item.city));
@@ -165,7 +167,7 @@ export default async function Page() {
         <div className="a4-sheet">
           <header className="print-head">
   <div>
-    <h1>지면용 오늘의 날씨</h1>
+    <h1>내일·모레·글피 날씨</h1>
   </div>
 
   <div className="print-meta">
@@ -240,6 +242,26 @@ export default async function Page() {
             </section>
 
             <div className="right-column">
+              <section className="card astro-card">
+                <div className="astro-grid">
+                  <div className="astro-row">
+                    <span className="astro-icon astro-icon-sun">☀</span>
+                    <span className="astro-label">해뜸</span>
+                    <span className="astro-time">{astro.sunrise ?? "-"}</span>
+                    <span className="astro-label astro-label-right">해짐</span>
+                    <span className="astro-time">{astro.sunset ?? "-"}</span>
+                  </div>
+
+                  <div className="astro-row">
+                    <span className="astro-icon astro-icon-moon">☾</span>
+                    <span className="astro-label">달뜸</span>
+                    <span className="astro-time">{astro.moonrise ?? "-"}</span>
+                    <span className="astro-label astro-label-right">달짐</span>
+                    <span className="astro-time">{astro.moonset ?? "-"}</span>
+                  </div>
+                </div>
+              </section>
+
               <PrecipChart rows={precipRows} />
 
               <section className="card forecast-card">
@@ -248,8 +270,8 @@ export default async function Page() {
                 </div>
 
                 <div className="forecast-grid">
-                  <CompactDayTable title="내일" rows={tableRows} kind="dayAfterTomorrow" />
-                  <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
+                  <CompactDayTable title="모레" rows={tableRows} kind="dayAfterTomorrow" />
+                  <CompactDayTable title="글피" rows={tableRows} kind="threeDaysLater" />
                 </div>
               </section>
             </div>

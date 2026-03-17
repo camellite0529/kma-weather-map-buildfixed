@@ -61,4 +61,4 @@ export async function getAstroTimes(): Promise<AstroTimes> {
     moonrise: formatHHMM(pick("moonrise")),
     moonset: formatHHMM(pick("moonset")),
   };
-} 
+}
