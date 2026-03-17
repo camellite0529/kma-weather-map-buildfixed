@@ -99,9 +99,9 @@ export const MAP_MARKER_POSITIONS: Record<string, MarkerPosition> = {
   광주: { x: 22.6, y: 67.0 },
   목포: { x: 14.0, y: 75.2 },
   여수: { x: 35.2, y: 75.4 },
-  제주: { x: 15.8, y: 92.2 },
-  울릉도: { x: 76.6, y: 35.8 },
-  독도: { x: 88.0, y: 33.0 }
+  제주: { x: 38, y: 93 },
+  울릉도: { x: 76.6, y: 93 },
+  독도: { x: 88.0, y: 93 }
 };
 
 function getKstParts(date = new Date()) {
