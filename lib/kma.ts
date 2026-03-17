@@ -83,7 +83,7 @@ export const MAP_MARKER_POSITIONS: Record<string, MarkerPosition> = {
   인천: { x: 23.8, y: 23.2 },
   수원: { x: 30.8, y: 28.5 },
   춘천: { x: 42.4, y: 20.2 },
-  속초: { x: 57.2, y: 18.4 },
+  속초: { x: 59.2, y: 15.4 },
   강릉: { x: 58.6, y: 24.0 },
   홍성: { x: 21.6, y: 38.8 },
   세종: { x: 31.8, y: 41.6 },
