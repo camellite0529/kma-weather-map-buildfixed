@@ -73,9 +73,9 @@ export default async function Page() {
         <header className="hero">
           <div>
             <p className="eyebrow">KMA WEATHER BOARD</p>
-            <h1>내일 지도 + 모레/글피 기온 보드</h1>
+            <h1>지면용 오늘의 날씨</h1>
             <p className="subtext">
-              내일은 지도 위에 최저/최고/날씨상태를 표시하고, 모레와 글피는 선택 도시만 표로 표시합니다.
+              자료: 기상청 단기예보, 한국환경공단 에어코리아 대기오염정보
             </p>
           </div>
           <div className="meta-box">
