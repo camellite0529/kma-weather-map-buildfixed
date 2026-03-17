@@ -53,10 +53,10 @@ body {
 .print-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 8mm;
   padding-bottom: 3mm;
-  margin-bottom: 4mm;
+  margin-bottom: 3mm;
   border-bottom: 1px solid #111;
 }
 
@@ -145,18 +145,13 @@ body {
   height: 100%;
 }
 
-.astro-card {
-  flex: 0 0 auto;
-  padding: 2.2mm 3mm;
-}
-
 .precip-card {
-  flex: 1 1 auto;
+  flex: 0 0 58%;
   padding: 3mm 3mm 2.6mm;
 }
 
 .forecast-card {
-  flex: 0 0 auto;
+  flex: 0 0 42%;
   padding: 2.4mm;
 }
 
@@ -235,56 +230,7 @@ body {
 }
 
 /* =========================
-   5-1) 출몰시각 카드
-   ========================= */
-.astro-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2mm;
-}
-
-.astro-row {
-  display: grid;
-  grid-template-columns: 4mm 8mm 1fr 8mm 1fr;
-  align-items: center;
-  gap: 1.2mm;
-  font-size: 2.6mm;
-  line-height: 1.2;
-}
-
-.astro-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3mm;
-}
-
-.astro-icon-sun {
-  color: #d18b00;
-}
-
-.astro-icon-moon {
-  color: #8a6fb8;
-}
-
-.astro-label {
-  white-space: nowrap;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.astro-label-right {
-  text-align: right;
-}
-
-.astro-time {
-  white-space: nowrap;
-  font-weight: 700;
-  color: var(--text);
-}
-
-/* =========================
-   6) 강수확률 
+   6) 강수확률
    ========================= */
 .precip-card .section-header {
   align-items: center;
@@ -435,7 +381,7 @@ body {
 .compact-table {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 2.0mm;
+  border-radius: 2mm;
   overflow: hidden;
 }
 
@@ -479,18 +425,71 @@ body {
 }
 
 /* =========================
-   8) Dust placeholder
+   8) Dust card
    ========================= */
 .dust-card {
   grid-column: 1 / -1;
-  min-height: 48mm;
+  min-height: 0;
+  padding: 3mm;
 }
 
-.blank-card-placeholder {
-  min-height: 36mm;
-  border: 1px dashed rgba(0, 0, 0, 0.18);
-  border-radius: 3mm;
-  background: #fafafa;
+.dust-header {
+  align-items: center;
+}
+
+.dust-time {
+  font-size: 2.5mm;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.dust-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2.4mm 4mm;
+  margin-top: 1.5mm;
+}
+
+.dust-item {
+  display: flex;
+  align-items: center;
+  gap: 1.2mm;
+  min-width: 0;
+}
+
+.dust-circle {
+  flex: 0 0 3.2mm;
+  width: 3.2mm;
+  height: 3.2mm;
+  border-radius: 50%;
+}
+
+.dust-good {
+  background: #4a90e2;
+}
+
+.dust-normal {
+  background: #43a047;
+}
+
+.dust-bad {
+  background: #f4c542;
+}
+
+.dust-very-bad {
+  background: #e53935;
+}
+
+.dust-region {
+  font-size: 2.7mm;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dust-grade {
+  font-size: 2.5mm;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* =========================
@@ -559,28 +558,14 @@ body {
     grid-column: auto;
   }
 
-.print-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 8mm;
-  padding-bottom: 3mm;
-  margin-bottom: 3mm;
-  border-bottom: 1px solid #111;
-}
+  .print-head {
+    flex-direction: column;
+  }
 
-.print-head h1 {
-  margin: 0;
-  font-size: 8.5mm;
-  line-height: 1.1;
-}
-
-.print-meta {
-  min-width: 55mm;
-  font-size: 3mm;
-  line-height: 1.65;
-  color: var(--muted);
-  text-align: right;
+  .print-meta {
+    min-width: 100%;
+    text-align: left;
+  }
 }
 
 /* =========================
@@ -610,8 +595,10 @@ body {
   width: auto;
   height: 9mm;
   border: none;
-  padding: 2.0mm;
+  padding: 2mm;
+  font-family: inherit;
   font-size: 3mm;
+  line-height: 1.4;
   color: var(--text);
   background: #f0f0f0;
   outline: none;
@@ -622,7 +609,8 @@ body {
   min-height: 30mm;
   resize: none;
   border: none;
-  padding: 2.0mm;
+  padding: 2mm;
+  font-family: inherit;
   font-size: 3mm;
   line-height: 1.4;
   color: var(--text);
@@ -636,9 +624,8 @@ body {
   font-family: inherit;
 }
 
-
 /* =========================
-   12) 모바일
+   13) 모바일
    ========================= */
 @media (max-width: 768px) {
   .today-note-top {
@@ -661,7 +648,7 @@ body {
     min-height: 100px;
     font-size: 13px;
   }
-   
+
   .forecast-grid {
     grid-template-columns: 1fr;
   }
@@ -724,5 +711,22 @@ body {
   .compact-table td {
     font-size: 11px;
     padding: 4px 6px;
+  }
+
+  .dust-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+
+  .dust-time {
+    font-size: 10px;
+  }
+
+  .dust-region {
+    font-size: 11px;
+  }
+
+  .dust-grade {
+    font-size: 10px;
   }
 }
