@@ -3,11 +3,29 @@ import { getWeatherData } from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
 
+const PRECIP_CITIES = [
+  "서울",
+  "인천",
+  "춘천",
+  "강릉",
+  "대전",
+  "세종",
+  "청주",
+  "광주",
+  "전주",
+  "부산",
+  "울산",
+  "대구",
+  "제주",
+];
+
 type DailyWeather = {
   date: string;
   minTemp: number | null;
   maxTemp: number | null;
   sky: string | null;
+  amPop: number | null;
+  pmPop: number | null;
 };
 
 type CityWeather = {
@@ -23,40 +41,82 @@ function tempText(value: number | null) {
   return value == null ? "-" : `${Math.round(value)}°`;
 }
 
-function DayTable({
+function percentValue(value: number | null) {
+  if (value == null || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function CompactDayTable({
   title,
   rows,
-  kind
+  kind,
 }: {
   title: string;
   rows: CityWeather[];
   kind: "dayAfterTomorrow" | "threeDaysLater";
 }) {
   return (
-    <section className="card">
-      <div className="section-header">
-        <h2>{title}</h2>
+    <div className="compact-table">
+      <div className="compact-table-title">{title}</div>
+      <table>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={`${kind}-${row.city}`}>
+              <th>{row.city}</th>
+              <td>
+                {tempText(row[kind].minTemp)} / {tempText(row[kind].maxTemp)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PrecipChart({ rows }: { rows: CityWeather[] }) {
+  const ticks = [0, 20, 40, 60, 80, 100];
+
+  return (
+    <section className="card precip-card">
+      <div className="section-header section-header-tight">
+        <h2>눈·비올 확률(%)</h2>
+        <div className="precip-legend">
+          <span className="legend-item">
+            <span className="legend-swatch legend-swatch-am" />
+            오전
+          </span>
+          <span className="legend-item">
+            <span className="legend-swatch legend-swatch-pm" />
+            오후
+          </span>
+        </div>
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>지역</th>
-              <th>최저기온</th>
-              <th>최고기온</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={`${kind}-${row.city}`}>
-                <td>{row.city}</td>
-                <td>{tempText(row[kind].minTemp)}</td>
-                <td>{tempText(row[kind].maxTemp)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="precip-scale">
+        {ticks.map((tick) => (
+          <span key={tick} style={{ left: `${tick}%` }}>
+            {tick}
+          </span>
+        ))}
+      </div>
+
+      <div className="precip-chart">
+        {rows.map((row) => (
+          <div key={`precip-${row.city}`} className="precip-row">
+            <div className="precip-label">{row.city}</div>
+            <div className="precip-track">
+              <div
+                className="precip-bar precip-bar-am"
+                style={{ width: `${percentValue(row.tomorrow.amPop)}%` }}
+              />
+              <div
+                className="precip-bar precip-bar-pm"
+                style={{ width: `${percentValue(row.tomorrow.pmPop)}%` }}
+              />
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -65,73 +125,99 @@ function DayTable({
 export default async function Page() {
   try {
     const weather = await getWeatherData();
+
     const tomorrowMap = weather.data;
     const tableRows = weather.data.filter((item) => TABLE_CITIES.includes(item.city));
+    const precipRows = PRECIP_CITIES
+      .map((city) => weather.data.find((item) => item.city === city))
+      .filter((item): item is CityWeather => Boolean(item));
 
     return (
       <main className="page">
-        <header className="hero">
-          <div>
-            <p className="eyebrow">KMA WEATHER BOARD</p>
-            <h1>지면용 오늘의 날씨</h1>
-            <p className="subtext">
-              자료: 기상청 단기예보, 한국환경공단 에어코리아 대기오염정보
-            </p>
-          </div>
-          <div className="meta-box">
-            <div>발표기준: {weather.base.baseDate} {weather.base.baseTime}</div>
-            <div>업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}</div>
-            <div>표시 도시: {weather.data.length}개</div>
-          </div>
-        </header>
-
-        {weather.warnings.length > 0 ? (
-          <section className="card warning-card">
-            <h2>일부 지역 데이터 지연</h2>
-            <p>
-              외부 API 응답 문제로 일부 도시 데이터가 비어 있습니다. 나머지 지역은 정상 표시됩니다.
-            </p>
-            <ul className="warning-list">
-              {weather.warnings.map((warning) => (
-                <li key={`${warning.city}-${warning.message}`}>{warning.message}</li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <section className="card">
-          <div className="section-header">
-            <h2>내일 날씨 지도</h2>
-            <p>표시항목: 최저기온 / 최고기온 / 날씨상태</p>
-          </div>
-
-          <div className="map-shell">
-            <div className="map-stage">
-              <img src="/map-bg.png" alt="대한민국 지도" className="map-image" />
-
-              {tomorrowMap.map((item) => {
-                const pos = getMarkerPosition(item.city);
-                return (
-                  <div key={item.city} className="map-marker" style={{ left: pos.left, top: pos.top }}>
-                    <div className="marker-card">
-                      <div className="marker-weather">{item.tomorrow.sky ?? "-"}</div>
-                      <div className="marker-line">
-                        <strong className="marker-city">{item.city}</strong>
-                        <span className="marker-temp">
-                          {tempText(item.tomorrow.minTemp)} / {tempText(item.tomorrow.maxTemp)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="a4-sheet">
+          <header className="print-head">
+            <div>
+              <p className="eyebrow">KMA WEATHER BOARD</p>
+              <h1>내일·모레·글피 날씨</h1>
+              <p className="subtext">
+                내일 지도 / 눈·비올 확률 / 모레·글피 기온 / 미세먼지 영역
+              </p>
             </div>
-          </div>
-        </section>
 
-        <div className="grid-2">
-          <DayTable title="모레 기온" rows={tableRows} kind="dayAfterTomorrow" />
-          <DayTable title="글피 기온" rows={tableRows} kind="threeDaysLater" />
+            <div className="print-meta">
+              <div>발표기준: {weather.base.baseDate} {weather.base.baseTime}</div>
+              <div>업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}</div>
+              <div>표시 도시: {weather.data.length}개</div>
+            </div>
+          </header>
+
+          {weather.warnings.length > 0 ? (
+            <section className="card warning-card">
+              <h2>일부 지역 데이터 지연</h2>
+              <ul className="warning-list">
+                {weather.warnings.map((warning) => (
+                  <li key={`${warning.city}-${warning.message}`}>{warning.message}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          <div className="news-layout">
+            <section className="card layout-map">
+              <div className="section-header section-header-tight">
+                <h2>전국날씨(℃)</h2>
+              </div>
+
+              <div className="map-shell">
+                <div className="map-stage">
+                  <img src="/map-bg.png" alt="대한민국 지도" className="map-image" />
+
+                  {tomorrowMap.map((item) => {
+                    const pos = getMarkerPosition(item.city);
+                    return (
+                      <div
+                        key={item.city}
+                        className="map-marker"
+                        style={{ left: pos.left, top: pos.top }}
+                      >
+                        <div className="marker-card">
+                          <div className="marker-weather">{item.tomorrow.sky ?? "-"}</div>
+                          <div className="marker-line">
+                            <strong className="marker-city">{item.city}</strong>
+                            <span className="marker-temp">
+                              {tempText(item.tomorrow.minTemp)} / {tempText(item.tomorrow.maxTemp)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            <div className="right-column">
+              <PrecipChart rows={precipRows} />
+
+              <section className="card forecast-card">
+                <div className="section-header section-header-tight">
+                  <h2>예상날씨(℃)</h2>
+                </div>
+
+                <div className="forecast-grid">
+                  <CompactDayTable title="모레" rows={tableRows} kind="dayAfterTomorrow" />
+                  <CompactDayTable title="글피" rows={tableRows} kind="threeDaysLater" />
+                </div>
+              </section>
+            </div>
+
+            <section className="card dust-card">
+              <div className="section-header section-header-tight">
+                <h2>오늘의 미세먼지</h2>
+              </div>
+              <div className="blank-card-placeholder" />
+            </section>
+          </div>
         </div>
       </main>
     );
@@ -140,13 +226,15 @@ export default async function Page() {
 
     return (
       <main className="page">
-        <section className="card error-card">
-          <h1>기상 데이터 로딩 실패</h1>
-          <p>{message}</p>
-          <p className="subtext">
-            환경변수의 기상청 서비스키가 인코딩 키인지 디코딩 키인지 확인하고, 배포 후 재시도해 주세요.
-          </p>
-        </section>
+        <div className="a4-sheet">
+          <section className="card error-card">
+            <h1>기상 데이터 로딩 실패</h1>
+            <p>{message}</p>
+            <p className="subtext">
+              환경변수의 기상청 서비스키와 외부 API 응답 상태를 확인해 주세요.
+            </p>
+          </section>
+        </div>
       </main>
     );
   }
