@@ -1,3 +1,5 @@
+import { getTargetDate } from "@/lib/kma";
+
 export type DustLevel = "좋음" | "보통" | "나쁨" | "매우 나쁨";
 
 export type DustRegionItem = {
@@ -41,6 +43,17 @@ function getTodayKST() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function formatDashedDate(yyyymmdd: string) {
+  return `${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}`;
+}
+
+function extractForecastDate(item: DustForecastItem) {
+  const raw = item.informData ?? item.dataTime ?? "";
+  const match = raw.match(/(\d{4})[-./]?(\d{2})[-./]?(\d{2})/);
+  if (!match) return null;
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
 function normalizeServiceKey(rawKey: string) {
   return rawKey.trim();
 }
@@ -70,13 +83,18 @@ function worstOf(levels: DustLevel[]) {
 
 function pickRegionGrade(informGrade: string, alias: string): DustLevel | null {
   const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`${escaped}\s*[:：]\s*(좋음|보통|나쁨|매우나쁨|매우 나쁨)`);
+  const regex = new RegExp(
+    `${escaped}\\s*[:：]\\s*(좋음|보통|나쁨|매우나쁨|매우 나쁨)`
+  );
   const match = informGrade.match(regex);
   if (!match?.[1]) return null;
   return normalizeDustLevel(match[1]);
 }
 
-async function fetchForecast(informCode: "PM10" | "PM25") {
+async function fetchForecast(
+  informCode: "PM10" | "PM25",
+  targetDate: string
+) {
   const rawKey = process.env.AIRKOREA_SERVICE_KEY;
 
   if (!rawKey) {
@@ -97,9 +115,10 @@ async function fetchForecast(informCode: "PM10" | "PM25") {
     ? serviceKey
     : encodeURIComponent(serviceKey);
 
-  const res = await fetch(`${BASE_URL}?serviceKey=${encodedServiceKey}&${params.toString()}`, {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${BASE_URL}?serviceKey=${encodedServiceKey}&${params.toString()}`,
+    { cache: "no-store" }
+  );
 
   if (!res.ok) {
     throw new Error(`미세먼지 예보 API 호출 실패: ${res.status}`);
@@ -112,17 +131,21 @@ async function fetchForecast(informCode: "PM10" | "PM25") {
     throw new Error(`${informCode} 예보 데이터가 비어 있습니다.`);
   }
 
-  return items.sort((a, b) =>
-    `${b.informData ?? ""}|${b.dataTime ?? ""}`.localeCompare(
-      `${a.informData ?? ""}|${a.dataTime ?? ""}`
-    )
-  )[0];
+  const matched = items.find((item) => extractForecastDate(item) === targetDate);
+
+  if (!matched) {
+    throw new Error(`${informCode} 예보에서 ${targetDate} 데이터를 찾지 못했습니다.`);
+  }
+
+  return matched;
 }
 
 export async function getDustData() {
+  const targetDate = formatDashedDate(getTargetDate(1));
+
   const [pm10Data, pm25Data] = await Promise.all([
-    fetchForecast("PM10"),
-    fetchForecast("PM25"),
+    fetchForecast("PM10", targetDate),
+    fetchForecast("PM25", targetDate),
   ]);
 
   const pm10GradeText = pm10Data.informGrade ?? "";
@@ -144,7 +167,8 @@ export async function getDustData() {
   }));
 
   return {
-    dataTime: pm10Data.informData ?? pm10Data.dataTime ?? null,
+    dataTime: targetDate,
     regions,
   };
 }
+
