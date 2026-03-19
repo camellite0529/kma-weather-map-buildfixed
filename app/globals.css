@@ -45,6 +45,7 @@ body { min-height: 100vh; }
 .precip-card .section-header { align-items: center; flex-wrap: nowrap; gap: 2mm; }
 .precip-card .section-header h2 { margin: 0; font-size: 4.25mm; line-height: 1.05; white-space: nowrap; flex-shrink: 0; }
 .precip-legend { display: flex; gap: 2mm; font-size: 2.6mm; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.precip-values { font-size: 2.1mm; }  
 .legend-item { display: inline-flex; align-items: center; gap: 0.7mm; white-space: nowrap; }
 .legend-swatch { display: inline-block; width: 3.2mm; height: 1.6mm; }
 .legend-swatch-am { background: var(--am); }
@@ -53,7 +54,7 @@ body { min-height: 100vh; }
 .precip-scale span { position: absolute; top: 0; transform: translateX(-50%); }
 .precip-chart { display: flex; flex-direction: column; gap: 1.1mm; }
 .precip-row-item { display: grid; grid-template-columns: 13mm 1fr; gap: 2.2mm; align-items: center; }
-.precip-label { font-size: 2.8mm; font-weight: 700; white-space: nowrap; }
+.precip-label { font-size: 2.5mm; font-weight: 700; white-space: nowrap; }
 .precip-track { position: relative; height: 7mm; border-left: 1px solid var(--line); background-image: repeating-linear-gradient( to right, transparent 0, transparent calc(20% - 1px), rgba(0, 0, 0, 0.12) calc(20% - 1px), rgba(0, 0, 0, 0.12) 20% ); }
 .precip-bar { position: absolute; left: 0; }
 .precip-bar-am { top: 1.05mm; height: 1.8mm; background: var(--am); }
@@ -110,6 +111,6 @@ body { min-height: 100vh; }
   .precip-card .section-header h2 { font-size: 14px; }
   .precip-legend { font-size: 10px; }
   .precip-row-item { grid-template-columns: 44px 1fr; }
-  .precip-label { font-size: 11px; }
+  .precip-label { font-size: 10px; }
   .forecast-table-grid th, .forecast-table-grid td { font-size: 11px; padding: 4px 6px; }
 }
