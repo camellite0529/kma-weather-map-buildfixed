@@ -31,18 +31,19 @@ export async function getAstroTimes(): Promise<AstroTimes> {
     throw new Error("KASI_SERVICE_KEY 환경변수가 없습니다.");
   }
 
+  const encodedServiceKey = /%[0-9A-Fa-f]{2}/.test(serviceKey)
+    ? serviceKey.trim()
+    : encodeURIComponent(serviceKey.trim());
+
   const params = new URLSearchParams({
-    serviceKey,
     locdate: getTomorrowDateKST(),
     location: "서울",
   });
 
   const url =
-    `https://apis.data.go.kr/B090041/openapi/service/RiseSetInfoService/getAreaRiseSetInfo?${params.toString()}`;
+    `https://apis.data.go.kr/B090041/openapi/service/RiseSetInfoService/getAreaRiseSetInfo?serviceKey=${encodedServiceKey}&${params.toString()}`;
 
-  const res = await fetch(url, {
-    cache: "no-store",
-  });
+  const res = await fetch(url, { cache: "no-store" });
 
   if (!res.ok) {
     throw new Error(`출몰시각 API 호출 실패: ${res.status}`);
@@ -52,7 +53,7 @@ export async function getAstroTimes(): Promise<AstroTimes> {
 
   const pick = (tag: string) => {
     const match = xml.match(new RegExp(`<${tag}>(.*?)</${tag}>`));
-    return match?.[1] ?? null;
+    return match?.[1]?.trim() ?? null;
   };
 
   return {

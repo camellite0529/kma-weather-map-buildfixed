@@ -146,12 +146,12 @@ body {
 }
 
 .precip-card {
-  flex: 0 0 58%;
+  flex: 0 0 50%;
   padding: 3mm 3mm 2.6mm;
 }
 
 .forecast-card {
-  flex: 0 0 42%;
+  flex: 0 0 50%;
   padding: 2.4mm;
 }
 
@@ -425,92 +425,18 @@ body {
 }
 
 /* =========================
-   8) Dust card
+   8) Dust placeholder
    ========================= */
 .dust-card {
   grid-column: 1 / -1;
-  min-height: 0;
-  padding: 3mm;
+  min-height: 48mm;
 }
 
-.dust-header {
-  align-items: center;
-}
-
-.dust-table {
-  display: flex;
-  flex-direction: column;
-  gap: 2mm;
-  margin-top: 1.5mm;
-}
-
-.dust-table-head,
-.dust-table-row {
-  display: grid;
-  grid-template-columns: 16mm repeat(12, minmax(0, 1fr));
-  gap: 1.6mm;
-  align-items: center;
-}
-
-.dust-left-spacer {
-  height: 1px;
-}
-
-.dust-col-head {
-  font-size: 2.5mm;
-  text-align: center;
-  line-height: 1.15;
-  white-space: pre-line;
-  word-break: keep-all;
-}
-
-.dust-row-label {
-  font-size: 2.7mm;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.dust-cell {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.dust-circle {
-  width: 3.2mm;
-  height: 3.2mm;
-  border-radius: 50%;
-}
-
-.dust-good {
-  background: #4a90e2;
-}
-
-.dust-normal {
-  background: #43a047;
-}
-
-.dust-bad {
-  background: #f4c542;
-}
-
-.dust-very-bad {
-  background: #e53935;
-}
-
-.dust-legend {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4mm;
-  font-size: 2.5mm;
-  color: var(--muted);
-}
-
-.dust-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 1mm;
-  white-space: nowrap;
+.blank-card-placeholder {
+  min-height: 36mm;
+  border: 1px dashed rgba(0, 0, 0, 0.18);
+  border-radius: 3mm;
+  background: #fafafa;
 }
 
 /* =========================
@@ -744,25 +670,61 @@ body {
     font-size: 11px;
     padding: 4px 6px;
   }
+}
 
-  .dust-table-head,
-  .dust-table-row {
-    grid-template-columns: 48px repeat(6, minmax(0, 1fr));
-    gap: 6px;
-  }
 
-  .dust-col-head {
-    font-size: 10px;
-  }
+/* =========================
+   8) Astronomy card
+   ========================= */
+.astro-card {
+  flex: 0 0 auto;
+  padding: 2.2mm 3mm;
+  background: #eef1f6;
+  border-radius: 2mm;
+}
 
-  .dust-row-label {
-    font-size: 10px;
-  }
+.astro-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2mm;
+}
 
-  .dust-legend {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 8px;
-    font-size: 10px;
-  }
+.astro-row {
+  display: grid;
+  grid-template-columns: 4mm 8mm 1fr 8mm 1fr;
+  align-items: center;
+  gap: 1.2mm;
+  font-size: 2.6mm;
+  line-height: 1.2;
+}
+
+.astro-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3mm;
+}
+
+.astro-icon-sun {
+  color: #d18b00;
+}
+
+.astro-icon-moon {
+  color: #8a6fb8;
+}
+
+.astro-label {
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.astro-label-right {
+  text-align: right;
+}
+
+.astro-time {
+  white-space: nowrap;
+  font-weight: 700;
+  color: var(--text);
 }

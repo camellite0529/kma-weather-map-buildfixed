@@ -1,6 +1,6 @@
 import { TABLE_CITIES, getMarkerPosition } from "@/lib/kma";
 import { getWeatherData } from "@/lib/weather";
-import { DustLevel, getDustData } from "@/lib/dust";
+import { getAstroTimes } from "@/lib/astro";
 
 export const dynamic = "force-dynamic";
 
@@ -53,13 +53,6 @@ function barWidthPercent(value: number | null) {
   return Math.max(8, actual);
 }
 
-function dustClassName(grade: DustLevel) {
-  if (grade === "좋음") return "dust-circle dust-good";
-  if (grade === "보통") return "dust-circle dust-normal";
-  if (grade === "나쁨") return "dust-circle dust-bad";
-  return "dust-circle dust-very-bad";
-}
-
 function CompactDayTable({
   title,
   rows,
@@ -85,6 +78,41 @@ function CompactDayTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+
+function AstroCard({
+  sunrise,
+  sunset,
+  moonrise,
+  moonset,
+}: {
+  sunrise: string | null;
+  sunset: string | null;
+  moonrise: string | null;
+  moonset: string | null;
+}) {
+  return (
+    <section className="card astro-card">
+      <div className="astro-grid">
+        <div className="astro-row">
+          <span className="astro-icon astro-icon-sun">☀</span>
+          <span className="astro-label">해뜸</span>
+          <span className="astro-time">{sunrise ?? "-"}</span>
+          <span className="astro-label astro-label-right">해짐</span>
+          <span className="astro-time">{sunset ?? "-"}</span>
+        </div>
+
+        <div className="astro-row">
+          <span className="astro-icon astro-icon-moon">☾</span>
+          <span className="astro-label">달뜸</span>
+          <span className="astro-time">{moonrise ?? "-"}</span>
+          <span className="astro-label astro-label-right">달짐</span>
+          <span className="astro-time">{moonset ?? "-"}</span>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -160,7 +188,7 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
 
 export default async function Page() {
   try {
-    const [weather, dust] = await Promise.all([getWeatherData(), getDustData()]);
+    const weather = await getWeatherData();
 
     const tomorrowMap = weather.data;
     const tableRows = weather.data.filter((item) => TABLE_CITIES.includes(item.city));
@@ -172,32 +200,35 @@ export default async function Page() {
       <main className="page">
         <div className="a4-sheet">
           <header className="print-head">
-            <div>
-              <h1>내일·모레·글피 날씨</h1>
-            </div>
+  <div>
+    <h1>내일·모레·글피 날씨</h1>
+  </div>
 
-            <div className="print-meta">
-              <div>
-                발표기준: {weather.base.baseDate} {weather.base.baseTime}
-              </div>
-              <div>
-                업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
-              </div>
-            </div>
-          </header>
+  <div className="print-meta">
+    <div>
+      발표기준: {weather.base.baseDate} {weather.base.baseTime}
+    </div>
+    <div>
+      업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
+    </div>
+  </div>
+</header>
 
-          <section className="card today-note-card">
-            <div className="today-note-top">
-              <div className="today-note-label">오늘의 날씨</div>
-              <input
-                type="text"
-                className="today-note-short"
-                placeholder="짧은 제목 입력"
-              />
-            </div>
+<section className="card today-note-card">
+  <div className="today-note-top">
+    <div className="today-note-label">오늘의 날씨</div>
+    <input
+      type="text"
+      className="today-note-short"
+      placeholder="짧은 제목 입력"
+    />
+  </div>
 
-            <textarea className="today-note-long" placeholder="텍스트 입력" />
-          </section>
+  <textarea
+    className="today-note-long"
+    placeholder="텍스트 입력"
+  />
+</section>
 
           {weather.warnings.length > 0 ? (
             <section className="card warning-card">
@@ -245,6 +276,13 @@ export default async function Page() {
             </section>
 
             <div className="right-column">
+              <AstroCard
+                sunrise={astro.sunrise}
+                sunset={astro.sunset}
+                moonrise={astro.moonrise}
+                moonset={astro.moonset}
+              />
+
               <PrecipChart rows={precipRows} />
 
               <section className="card forecast-card">
@@ -260,42 +298,10 @@ export default async function Page() {
             </div>
 
             <section className="card dust-card">
-              <div className="section-header section-header-tight dust-header">
+              <div className="section-header section-header-tight">
                 <h2>오늘의 미세먼지</h2>
-                <div className="dust-legend">
-                  <span><span className="dust-circle dust-good" />좋음</span>
-                  <span><span className="dust-circle dust-normal" />보통</span>
-                  <span><span className="dust-circle dust-bad" />나쁨</span>
-                  <span><span className="dust-circle dust-very-bad" />매우 나쁨</span>
-                </div>
               </div>
-
-              <div className="dust-table">
-                <div className="dust-table-head">
-                  <div className="dust-left-spacer" />
-                  {dust.regions.map((item) => (
-                    <div key={`head-${item.region}`} className="dust-col-head">{item.displayLabel}</div>
-                  ))}
-                </div>
-
-                <div className="dust-table-row">
-                  <div className="dust-row-label">미세먼지</div>
-                  {dust.regions.map((item) => (
-                    <div key={`pm10-${item.region}`} className="dust-cell">
-                      <span className={dustClassName(item.pm10)} />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="dust-table-row">
-                  <div className="dust-row-label">초미세먼지</div>
-                  {dust.regions.map((item) => (
-                    <div key={`pm25-${item.region}`} className="dust-cell">
-                      <span className={dustClassName(item.pm25)} />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className="blank-card-placeholder" />
             </section>
           </div>
         </div>
@@ -311,6 +317,9 @@ export default async function Page() {
           <section className="card error-card">
             <h1>기상 데이터 로딩 실패</h1>
             <p>{message}</p>
+            <p className="subtext">
+              환경변수의 기상청 서비스키와 외부 API 응답 상태를 확인해 주세요.
+            </p>
           </section>
         </div>
       </main>
