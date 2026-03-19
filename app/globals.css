@@ -577,27 +577,35 @@ body {
 
 @page {
   size: A4 portrait;
-  margin: 6mm;
+  margin: 0;
 }
 
 @media print {
   html,
   body {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 0;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
   .page {
+    width: 210mm;
     padding: 0;
+    margin: 0;
   }
 
   .a4-sheet {
-    width: auto;
-    min-height: auto;
+    width: 210mm;
+    min-height: 297mm;
     margin: 0;
-    padding: 0;
+    padding: 5.5mm 5.5mm 6mm;
     box-shadow: none;
+    background: #fff;
+    overflow: hidden;
   }
 
   .layout-map,
@@ -613,6 +621,8 @@ body {
   .today-note-short,
   .today-note-long {
     color: #111;
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 

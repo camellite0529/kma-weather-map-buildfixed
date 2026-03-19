@@ -135,21 +135,21 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
                   <div
                     className="precip-bar precip-bar-am"
                     style={{ width: `${amWidth}%` }}
-                    title={`오전 ${amDisplay}%`}
+                    title={`${amDisplay}%`}
                   />
                 ) : null}
                 {pmWidth > 0 ? (
                   <div
                     className="precip-bar precip-bar-pm"
                     style={{ width: `${pmWidth}%` }}
-                    title={`오후 ${pmDisplay}%`}
+                    title={`${pmDisplay}%`}
                   />
                 ) : null}
               </div>
 
               <div className="precip-values" aria-label={`${row.city} 강수확률`}>
-                <span className="precip-value precip-value-am">오전 {amDisplay}%</span>
-                <span className="precip-value precip-value-pm">오후 {pmDisplay}%</span>
+                <span className="precip-value precip-value-am">{amDisplay}%</span>
+                <span className="precip-value precip-value-pm">{pmDisplay}%</span>
               </div>
             </div>
           );
