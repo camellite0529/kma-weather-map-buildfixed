@@ -1,7 +1,7 @@
 import { TABLE_CITIES, getMarkerPosition } from "@/lib/kma";
 import { getWeatherData } from "@/lib/weather";
-import { getDustData, type DustLevel } from "@/lib/dust";
 import { getAstroTimes } from "@/lib/astro";
+import { getDustData, type DustLevel } from "@/lib/dust";
 
 export const dynamic = "force-dynamic";
 
@@ -50,8 +50,7 @@ function displayPercent(value: number | null) {
 
 function barWidthPercent(value: number | null) {
   const actual = displayPercent(value);
-  if (actual === 0) return 0;
-  return Math.max(8, actual);
+  return actual === 0 ? 0 : actual;
 }
 
 function dustClassName(grade: DustLevel) {
@@ -59,34 +58,6 @@ function dustClassName(grade: DustLevel) {
   if (grade === "보통") return "dust-circle dust-normal";
   if (grade === "나쁨") return "dust-circle dust-bad";
   return "dust-circle dust-very-bad";
-}
-
-function CompactDayTable({
-  title,
-  rows,
-  kind,
-}: {
-  title: string;
-  rows: CityWeather[];
-  kind: "dayAfterTomorrow" | "threeDaysLater";
-}) {
-  return (
-    <div className="compact-table">
-      <div className="compact-table-title">{title}</div>
-      <table>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={`${kind}-${row.city}`}>
-              <th>{row.city}</th>
-              <td>
-                {tempText(row[kind].minTemp)} / {tempText(row[kind].maxTemp)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
 }
 
 function AstroCard({
@@ -102,22 +73,20 @@ function AstroCard({
 }) {
   return (
     <section className="card astro-card">
-      <div className="astro-grid">
-        <div className="astro-row">
-          <span className="astro-icon astro-icon-sun">☀</span>
-          <span className="astro-label">해뜸</span>
-          <span className="astro-time">{sunrise ?? "-"}</span>
-          <span className="astro-label astro-label-right">해짐</span>
-          <span className="astro-time">{sunset ?? "-"}</span>
-        </div>
+      <div className="astro-row">
+        <span className="astro-icon astro-icon-sun">☀</span>
+        <span className="astro-label">해뜸</span>
+        <span className="astro-time">{sunrise ?? "-"}</span>
+        <span className="astro-label astro-label-right">해짐</span>
+        <span className="astro-time">{sunset ?? "-"}</span>
+      </div>
 
-        <div className="astro-row">
-          <span className="astro-icon astro-icon-moon">☾</span>
-          <span className="astro-label">달뜸</span>
-          <span className="astro-time">{moonrise ?? "-"}</span>
-          <span className="astro-label astro-label-right">달짐</span>
-          <span className="astro-time">{moonset ?? "-"}</span>
-        </div>
+      <div className="astro-row">
+        <span className="astro-icon astro-icon-moon">☾</span>
+        <span className="astro-label">달뜸</span>
+        <span className="astro-time">{moonrise ?? "-"}</span>
+        <span className="astro-label astro-label-right">달짐</span>
+        <span className="astro-time">{moonset ?? "-"}</span>
       </div>
     </section>
   );
@@ -152,38 +121,27 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
 
       <div className="precip-chart">
         {rows.map((row) => {
-          const amDisplay = displayPercent(row.tomorrow.amPop);
-          const pmDisplay = displayPercent(row.tomorrow.pmPop);
           const amWidth = barWidthPercent(row.tomorrow.amPop);
           const pmWidth = barWidthPercent(row.tomorrow.pmPop);
 
           return (
-            <div key={`precip-${row.city}`} className="precip-row">
+            <div key={`precip-${row.city}`} className="precip-row-item">
               <div className="precip-label">{row.city}</div>
               <div className="precip-track">
                 {amWidth > 0 ? (
                   <div
                     className="precip-bar precip-bar-am"
                     style={{ width: `${amWidth}%` }}
-                    title={`오전 ${amDisplay}%`}
-                  >
-                    <span className="precip-value">{amDisplay}%</span>
-                  </div>
-                ) : (
-                  <div className="precip-value precip-value-zero precip-value-am-zero">0%</div>
-                )}
-
+                    title={`오전 ${displayPercent(row.tomorrow.amPop)}%`}
+                  />
+                ) : null}
                 {pmWidth > 0 ? (
                   <div
                     className="precip-bar precip-bar-pm"
                     style={{ width: `${pmWidth}%` }}
-                    title={`오후 ${pmDisplay}%`}
-                  >
-                    <span className="precip-value">{pmDisplay}%</span>
-                  </div>
-                ) : (
-                  <div className="precip-value precip-value-zero precip-value-pm-zero">0%</div>
-                )}
+                    title={`오후 ${displayPercent(row.tomorrow.pmPop)}%`}
+                  />
+                ) : null}
               </div>
             </div>
           );
@@ -193,12 +151,40 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
   );
 }
 
+function CompactDayTable({
+  title,
+  rows,
+  kind,
+}: {
+  title: string;
+  rows: CityWeather[];
+  kind: "dayAfterTomorrow" | "threeDaysLater";
+}) {
+  return (
+    <div className="forecast-table">
+      <div className="forecast-table-title">{title}</div>
+      <table className="forecast-table-grid">
+        <tbody>
+          {rows.map((row) => (
+            <tr key={`${kind}-${row.city}`}>
+              <th>{row.city}</th>
+              <td>
+                {tempText(row[kind].minTemp)} / {tempText(row[kind].maxTemp)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default async function Page() {
   try {
-    const [weather, dust, astro] = await Promise.all([
+    const [weather, astro, dust] = await Promise.all([
       getWeatherData(),
-      getDustData(),
       getAstroTimes(),
+      getDustData(),
     ]);
 
     const tomorrowMap = weather.data;
@@ -211,31 +197,28 @@ export default async function Page() {
       <main className="page">
         <div className="a4-sheet">
           <header className="print-head">
-            <div>
+            <div className="print-title-wrap">
               <h1>내일·모레·글피 날씨</h1>
             </div>
-
             <div className="print-meta">
-              <div>
-                발표기준: {weather.base.baseDate} {weather.base.baseTime}
-              </div>
-              <div>
-                업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
-              </div>
+              <div>발표기준: {weather.base.baseDate} {weather.base.baseTime}</div>
+              <div>업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}</div>
             </div>
           </header>
 
-          <section className="card today-note-card">
+          <section className="today-note-section">
             <div className="today-note-top">
-              <div className="today-note-label">오늘의 날씨</div>
+              <span className="today-note-title">오늘의 날씨</span>
               <input
                 type="text"
                 className="today-note-short"
-                placeholder="짧은 제목 입력"
+                placeholder="우산 챙기세요"
               />
             </div>
-
-            <textarea className="today-note-long" placeholder="텍스트 입력" />
+            <textarea
+              className="today-note-long"
+              placeholder="전국이 대체로 흐리고 곳곳에 비가 내리겠다."
+            />
           </section>
 
           {weather.warnings.length > 0 ? (
@@ -297,7 +280,6 @@ export default async function Page() {
                 <div className="section-header section-header-tight">
                   <h2>예상날씨(℃)</h2>
                 </div>
-
                 <div className="forecast-grid">
                   <CompactDayTable title="모레" rows={tableRows} kind="dayAfterTomorrow" />
                   <CompactDayTable title="글피" rows={tableRows} kind="threeDaysLater" />
