@@ -161,6 +161,20 @@ export function getTargetDate(offsetDays: number) {
   return `${yyyy}${mm}${dd}`;
 }
 
+
+type WeatherLabel =
+  | "맑음"
+  | "구름조금"
+  | "구름많음"
+  | "흐림"
+  | "차차흐림"
+  | "흐린후갬"
+  | "비"
+  | "흐린후비"
+  | "비후갬"
+  | "눈"
+  | "비나눈";
+
 export function skyCodeToText(
   value: string | number | null | undefined,
 ): WeatherLabel | null {
