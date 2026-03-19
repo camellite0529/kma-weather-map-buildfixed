@@ -1,5 +1,6 @@
 import { TABLE_CITIES, getMarkerPosition } from "@/lib/kma";
 import { getWeatherData } from "@/lib/weather";
+import { getDustData, type DustLevel } from "@/lib/dust";
 import { getAstroTimes } from "@/lib/astro";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +54,13 @@ function barWidthPercent(value: number | null) {
   return Math.max(8, actual);
 }
 
+function dustClassName(grade: DustLevel) {
+  if (grade === "좋음") return "dust-circle dust-good";
+  if (grade === "보통") return "dust-circle dust-normal";
+  if (grade === "나쁨") return "dust-circle dust-bad";
+  return "dust-circle dust-very-bad";
+}
+
 function CompactDayTable({
   title,
   rows,
@@ -80,7 +88,6 @@ function CompactDayTable({
     </div>
   );
 }
-
 
 function AstroCard({
   sunrise,
@@ -188,7 +195,11 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
 
 export default async function Page() {
   try {
-    const weather = await getWeatherData();
+    const [weather, dust, astro] = await Promise.all([
+      getWeatherData(),
+      getDustData(),
+      getAstroTimes(),
+    ]);
 
     const tomorrowMap = weather.data;
     const tableRows = weather.data.filter((item) => TABLE_CITIES.includes(item.city));
@@ -200,35 +211,32 @@ export default async function Page() {
       <main className="page">
         <div className="a4-sheet">
           <header className="print-head">
-  <div>
-    <h1>내일·모레·글피 날씨</h1>
-  </div>
+            <div>
+              <h1>내일·모레·글피 날씨</h1>
+            </div>
 
-  <div className="print-meta">
-    <div>
-      발표기준: {weather.base.baseDate} {weather.base.baseTime}
-    </div>
-    <div>
-      업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
-    </div>
-  </div>
-</header>
+            <div className="print-meta">
+              <div>
+                발표기준: {weather.base.baseDate} {weather.base.baseTime}
+              </div>
+              <div>
+                업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
+              </div>
+            </div>
+          </header>
 
-<section className="card today-note-card">
-  <div className="today-note-top">
-    <div className="today-note-label">오늘의 날씨</div>
-    <input
-      type="text"
-      className="today-note-short"
-      placeholder="짧은 제목 입력"
-    />
-  </div>
+          <section className="card today-note-card">
+            <div className="today-note-top">
+              <div className="today-note-label">오늘의 날씨</div>
+              <input
+                type="text"
+                className="today-note-short"
+                placeholder="짧은 제목 입력"
+              />
+            </div>
 
-  <textarea
-    className="today-note-long"
-    placeholder="텍스트 입력"
-  />
-</section>
+            <textarea className="today-note-long" placeholder="텍스트 입력" />
+          </section>
 
           {weather.warnings.length > 0 ? (
             <section className="card warning-card">
@@ -298,10 +306,20 @@ export default async function Page() {
             </div>
 
             <section className="card dust-card">
-              <div className="section-header section-header-tight">
+              <div className="section-header section-header-tight dust-header">
                 <h2>오늘의 미세먼지</h2>
+                <span className="dust-time">{dust.dataTime ?? "-"}</span>
               </div>
-              <div className="blank-card-placeholder" />
+
+              <div className="dust-grid">
+                {dust.regions.map((item) => (
+                  <div key={item.region} className="dust-item">
+                    <span className={dustClassName(item.grade)} />
+                    <span className="dust-region">{item.region}</span>
+                    <span className="dust-grade">{item.grade}</span>
+                  </div>
+                ))}
+              </div>
             </section>
           </div>
         </div>
@@ -317,9 +335,6 @@ export default async function Page() {
           <section className="card error-card">
             <h1>기상 데이터 로딩 실패</h1>
             <p>{message}</p>
-            <p className="subtext">
-              환경변수의 기상청 서비스키와 외부 API 응답 상태를 확인해 주세요.
-            </p>
           </section>
         </div>
       </main>

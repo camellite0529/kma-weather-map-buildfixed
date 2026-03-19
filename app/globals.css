@@ -146,12 +146,12 @@ body {
 }
 
 .precip-card {
-  flex: 0 0 50%;
+  flex: 0 0 58%;
   padding: 3mm 3mm 2.6mm;
 }
 
 .forecast-card {
-  flex: 0 0 50%;
+  flex: 0 0 42%;
   padding: 2.4mm;
 }
 
@@ -674,7 +674,7 @@ body {
 
 
 /* =========================
-   8) Astronomy card
+   Astronomy card
    ========================= */
 .astro-card {
   flex: 0 0 auto;
