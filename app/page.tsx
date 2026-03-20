@@ -267,7 +267,7 @@ export default async function Page() {
               </div>
             </section>
 
-                        <div className="right-column">
+            <div className="right-column">
               <AstroCard
                 sunrise={astro.sunrise}
                 sunset={astro.sunset}
@@ -286,8 +286,10 @@ export default async function Page() {
                   <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
                 </div>
               </section>
-              <section className="card dust-card">
-                <div className="section-header section-header-tight dust-header">
+            </div>
+            
+            <section className="card dust-card">
+              <div className="section-header section-header-tight dust-header">
                   <h2>오늘의 미세먼지</h2>
                   <div className="dust-meta">
                     <span className="dust-time">{dust.dataTime ?? "-"}</span>
