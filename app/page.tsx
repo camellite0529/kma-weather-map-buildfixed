@@ -346,8 +346,7 @@ export default async function Page() {
               </section>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
     );
   } catch (error) {                
     const message =
