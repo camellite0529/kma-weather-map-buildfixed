@@ -286,8 +286,6 @@ export default async function Page() {
                   <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
                 </div>
               </section>
-
-              /*여기서부터 미세먼지*/
               <section className="card dust-card">
                 <div className="section-header section-header-tight dust-header">
                   <h2>오늘의 미세먼지</h2>
