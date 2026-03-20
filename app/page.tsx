@@ -198,13 +198,15 @@ export default async function Page() {
       <main className="page">
         <div className="a4-sheet">
           <header className="print-head">
-            <h1>내일·모레·글피 날씨</h1>
+            <h1>지면용 오늘의 날씨</h1>
             <div className="print-meta">
               <div>
                 발표기준: {weather.base.baseDate} {weather.base.baseTime}
               </div>
               <div>
-                업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR")}
+                업데이트: {new Date(weather.updatedAt).toLocaleString("ko-KR", {
+                timeZone: "Asia/Seoul",
+                })}
               </div>
             </div>
           </header>
@@ -215,13 +217,13 @@ export default async function Page() {
               <input
                 className="today-note-short"
                 defaultValue=""
-                placeholder="짧은 헤드라인을 입력해 주세요."
+                placeholder="우산 챙기세요"
               />
             </div>
             <textarea
               className="today-note-long"
               defaultValue=""
-              placeholder="간단한 메모를 최대 3줄 안에서 남겨 주세요."
+              placeholder="전국이 대체로 흐리고 곳곳에 비가 내리겠다."
             />
           </section>
 
@@ -281,8 +283,8 @@ export default async function Page() {
                   <h2>예상날씨(℃)</h2>
                 </div>
                 <div className="forecast-grid">
-                  <CompactDayTable title="모레" rows={tableRows} kind="dayAfterTomorrow" />
-                  <CompactDayTable title="글피" rows={tableRows} kind="threeDaysLater" />
+                  <CompactDayTable title="내일" rows={tableRows} kind="dayAfterTomorrow" />
+                  <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
                 </div>
               </section>
             </div>
