@@ -123,13 +123,13 @@ body {
 
 .today-note-long {
   width: 100%;
-  min-height: 18mm;
+  min-height: 12mm;
   resize: none;
   border: none;
   background: transparent;
   font-family: inherit;
   font-size: 3.4mm;
-  line-height: 1.45;
+  line-height: 1.4;
   outline: none;
   padding: 0;
 }
