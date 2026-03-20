@@ -140,8 +140,8 @@ function PrecipChart({ rows }: { rows: CityWeather[] }) {
                 ) : null}
               </div>
               <div className="precip-values">
-                <span className="precip-value precip-value-am">{amDisplay}%</span>
-                <span className="precip-value precip-value-pm">{pmDisplay}%</span>
+                <span className="precip-value precip-value-am">{amPercent}%</span>
+                <span className="precip-value precip-value-pm">{pmPercent}%</span>
               </div>
             </div>
           );
