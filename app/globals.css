@@ -568,7 +568,7 @@ body {
 
 @page {
   size: A4 portrait;
-  margin: 8mm;
+  margin: 6mm;
 }
 
 @media print {
@@ -594,6 +594,30 @@ body {
   .dust-card {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+    .today-note-section {
+    margin-bottom: 2.2mm;
+  }
+
+  .today-note-long {
+    min-height: 12mm;
+    font-size: 3.1mm;
+    line-height: 1.3;
+  }
+
+  .right-column {
+    gap: 2.2mm;
+  }
+
+  .dust-table {
+    gap: 1.1mm;
+    margin-top: 1mm;
+  }
+
+  .dust-legend {
+    margin-top: 1.2mm;
+    gap: 3mm;
+    font-size: 2.8mm;
   }
 }
 
