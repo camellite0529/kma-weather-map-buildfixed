@@ -6,19 +6,19 @@
   - 지역: 서울, 인천, 수원, 춘천, 속초, 강릉, 홍성, 세종, 청주, 안동, 대전, 전주, 대구, 포항, 울산, 창원, 부산, 광주, 목포, 여수, 제주, 울릉도, 독도
   - 항목: 최저기온 / 최고기온 / 날씨상태(맑음, 구름조금, 구름많음, 흐림, 차차흐림, 흐린 후 갬, 비, 눈, 비나눈)
   - 현재 날씨 분류 로직: 
-  morning 맑음 → afternoon 구름조금 = "구름조금" 
-  morning 구름조금 → afternoon 맑음 = "구름조금"
-  morning 구름많음 or 흐림 → afternoon 구름많음 or 흐림 = "흐림"
-  morning 비→ afternoon 비/눈 or 눈/비 = "비나눈"
-  morning 비/눈 or 눈/비 or 눈 → afternoon 비 = "비나눈"
-  morning 비/눈 or 눈/비 or 비 → afternoon 눈 = "비나눈"
-  morning 비/눈 or 눈/비 → afternoon 비/눈 or 눈/비 = "비나눈"
-  morning 맑음 or 구름조금 → afternoon 구름많음 or 흐림 = "차차흐림"
-  morning 구름많음 or 흐림 → afternoon 맑음 or 구름조금 = "흐린후갬"
-  morning 맑음 or 구름조금 or 구름많음 or 흐림 → afternoon 비 or 비/눈 or 눈/비 = "흐린후비"
-  morning 비 or 비/눈 or 눈/비 → afternoon 맑음 or 구름조금 or 구름많음 or 흐림 = "비후갬"
-  morning 맑음 or 구름조금 or 구름많음 or 흐림 → afternoon 눈= "눈"
-  morning 눈 → afternoon 맑음 or 구름조금 or 구름많음 or 흐림 or 비/눈 or 눈/비 = "눈"
+  morning 맑음 → afternoon 구름조금 = "구름조금"   
+  morning 구름조금 → afternoon 맑음 = "구름조금"  
+  morning 구름많음 or 흐림 → afternoon 구름많음 or 흐림 = "흐림"  
+  morning 비→ afternoon 비/눈 or 눈/비 = "비나눈"  
+  morning 비/눈 or 눈/비 or 눈 → afternoon 비 = "비나눈"  
+  morning 비/눈 or 눈/비 or 비 → afternoon 눈 = "비나눈"  
+  morning 비/눈 or 눈/비 → afternoon 비/눈 or 눈/비 = "비나눈"  
+  morning 맑음 or 구름조금 → afternoon 구름많음 or 흐림 = "차차흐림"  
+  morning 구름많음 or 흐림 → afternoon 맑음 or 구름조금 = "흐린후갬"  
+  morning 맑음 or 구름조금 or 구름많음 or 흐림 → afternoon 비 or 비/눈 or 눈/비 = "흐린후비"  
+  morning 비 or 비/눈 or 눈/비 → afternoon 맑음 or 구름조금 or 구름많음 or 흐림 = "비후갬"  
+  morning 맑음 or 구름조금 or 구름많음 or 흐림 → afternoon 눈= "눈"  
+  morning 눈 → afternoon 맑음 or 구름조금 or 구름많음 or 흐림 or 비/눈 or 눈/비 = "눈"  
   
 - 표 형태의 **예상날씨(실제로는 모레 / 글피 기온)**
   - 지역: 서울, 인천, 춘천, 강릉, 대전, 세종, 청주, 광주, 전주, 부산, 울산, 대구, 제주
