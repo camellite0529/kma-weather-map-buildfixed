@@ -17,6 +17,12 @@ type WeatherWarning = {
   message: string;
 };
 
+type DailyWeatherSummary = ReturnType<typeof summarizeDailyWeather>;
+type DailyWeatherWithDetail = DailyWeatherSummary & {
+  amSky: string | null;
+  pmSky: string | null;
+};
+
 type WeatherResult = {
   base: { baseDate: string; baseTime: string };
   updatedAt: string;
@@ -24,9 +30,9 @@ type WeatherResult = {
     city: string;
     lat: number;
     lon: number;
-    tomorrow: ReturnType<typeof summarizeDailyWeather>;
-    dayAfterTomorrow: ReturnType<typeof summarizeDailyWeather>;
-    threeDaysLater: ReturnType<typeof summarizeDailyWeather>;
+    tomorrow: DailyWeatherWithDetail;
+    dayAfterTomorrow: DailyWeatherWithDetail;
+    threeDaysLater: DailyWeatherWithDetail;
   }>;
   warnings: WeatherWarning[];
 };
@@ -41,6 +47,106 @@ function isLikelyEncodedKey(value: string) {
 
 function normalizeServiceKey(rawKey: string) {
   return rawKey.trim();
+}
+
+function getItemField(item: ForecastItem, field: string) {
+  const value = (item as Record<string, unknown>)[field];
+  return typeof value === "string" || typeof value === "number" ? value : null;
+}
+
+function normalizeForecastTime(value: string | number | null) {
+  if (value == null) return null;
+  return String(value).padStart(4, "0");
+}
+
+function mapSkyCode(value: string | number | null) {
+  const code = String(value ?? "").trim();
+
+  if (code === "1") return "맑음";
+  if (code === "3") return "구름많음";
+  if (code === "4") return "흐림";
+
+  return null;
+}
+
+function mapPtyCode(value: string | number | null) {
+  const code = String(value ?? "").trim();
+
+  if (code === "0") return null;
+  if (code === "1") return "비";
+  if (code === "2") return "비/눈";
+  if (code === "3") return "눈";
+  if (code === "4") return "소나기";
+  if (code === "5") return "빗방울";
+  if (code === "6") return "빗방울/눈날림";
+  if (code === "7") return "눈날림";
+
+  return null;
+}
+
+function pickRepresentativeTime(items: ForecastItem[], targetDate: string, period: "am" | "pm") {
+  const start = period === "am" ? 600 : 1200;
+  const end = period === "am" ? 1100 : 2100;
+  const preferred = period === "am" ? [900, 600] : [1500, 1800, 1200];
+
+  const times = Array.from(
+    new Set(
+      items
+        .filter((item) => String(getItemField(item, "fcstDate") ?? "") === targetDate)
+        .map((item) => normalizeForecastTime(getItemField(item, "fcstTime")))
+        .filter((value): value is string => Boolean(value))
+        .filter((value) => {
+          const numeric = Number(value);
+          return Number.isFinite(numeric) && numeric >= start && numeric <= end
+        })
+    )
+  )
+    .map((value) => Number(value))
+    .sort((a, b) => a - b);
+
+  if (times.length === 0) {
+    return null;
+  }
+
+  for (const time of preferred) {
+    if (times.includes(time)) {
+      return String(time).padStart(4, "0");
+    }
+  }
+
+  return String(times[0]).padStart(4, "0");
+}
+
+function getRawPeriodSky(items: ForecastItem[], targetDate: string, period: "am" | "pm") {
+  const targetTime = pickRepresentativeTime(items, targetDate, period);
+
+  if (!targetTime) {
+    return null;
+  }
+
+  const matchingItems = items.filter(
+    (item) =>
+      String(getItemField(item, "fcstDate") ?? "") === targetDate &&
+      normalizeForecastTime(getItemField(item, "fcstTime")) === targetTime
+  );
+
+  const ptyItem = matchingItems.find((item) => String(getItemField(item, "category") ?? "") === "PTY");
+  const ptyText = mapPtyCode(getItemField(ptyItem ?? ({} as ForecastItem), "fcstValue"));
+
+  if (ptyText) {
+    return ptyText;
+  }
+
+  const skyItem = matchingItems.find((item) => String(getItemField(item, "category") ?? "") === "SKY");
+  return mapSkyCode(getItemField(skyItem ?? ({} as ForecastItem), "fcstValue"));
+}
+
+function withRawSkyDetail(items: ForecastItem[], targetDate: string): DailyWeatherWithDetail {
+  return {
+    ...summarizeDailyWeather(items, targetDate),
+    amSky: getRawPeriodSky(items, targetDate, "am"),
+    pmSky: getRawPeriodSky(items, targetDate, "pm")
+  };
 }
 
 function buildRequestUrl({
@@ -132,9 +238,9 @@ async function fetchCityForecast(cityName: string, lat: number, lon: number) {
         city: cityName,
         lat,
         lon,
-        tomorrow: summarizeDailyWeather(items, tomorrowDate),
-        dayAfterTomorrow: summarizeDailyWeather(items, dayAfterTomorrowDate),
-        threeDaysLater: summarizeDailyWeather(items, threeDaysLaterDate)
+        tomorrow: withRawSkyDetail(items, tomorrowDate),
+        dayAfterTomorrow: withRawSkyDetail(items, dayAfterTomorrowDate),
+        threeDaysLater: withRawSkyDetail(items, threeDaysLaterDate)
       };
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("알 수 없는 오류");
