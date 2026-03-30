@@ -26,6 +26,8 @@ type DailyWeather = {
   minTemp: number | null;
   maxTemp: number | null;
   sky: string | null;
+  amSky: string | null;
+  pmSky: string | null;
   amPop: number | null;
   pmPop: number | null;
 };
@@ -46,6 +48,10 @@ function tempText(value: number | null) {
 function displayPercent(value: number | null) {
   if (value == null || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function skyDetailText(value: string | null) {
+  return value ?? "-";
 }
 
 function dustClassName(grade: DustLevel) {
@@ -218,30 +224,29 @@ export default async function Page() {
             </div>
           </header>
           <div className="top-layout">
-  <section className="card today-note-section">
-    <div className="today-note-top">
-      <div className="today-note-title">오늘의 날씨</div>
-      <input
-        className="today-note-short"
-        defaultValue=""
-        placeholder="우산 챙기세요"
-      />
-    </div>
-    <textarea
-      className="today-note-long"
-      defaultValue=""
-      placeholder="전국이 대체로 흐리고 곳곳에 비가 내리겠다."
-    />
-  </section>
+            <section className="card today-note-section">
+              <div className="today-note-top">
+                <div className="today-note-title">오늘의 날씨</div>
+                <input
+                  className="today-note-short"
+                  defaultValue=""
+                  placeholder="우산 챙기세요"
+                />
+              </div>
+              <textarea
+                className="today-note-long"
+                defaultValue=""
+                placeholder="전국이 대체로 흐리고 곳곳에 비가 내리겠다."
+              />
+            </section>
 
-  <AstroCard
-    sunrise={astro.sunrise}
-    sunset={astro.sunset}
-    moonrise={astro.moonrise}
-    moonset={astro.moonset}
-  />
-</div>
-          
+            <AstroCard
+              sunrise={astro.sunrise}
+              sunset={astro.sunset}
+              moonrise={astro.moonrise}
+              moonset={astro.moonset}
+            />
+          </div>
 
           {weather.warnings.length > 0 ? (
             <section className="card warning-card">
@@ -282,6 +287,21 @@ export default async function Page() {
                               {tempText(item.tomorrow.maxTemp)}
                             </span>
                           </div>
+
+                          <div className="marker-tooltip" aria-hidden="true">
+                            <div className="marker-tooltip-row">
+                              <span className="marker-tooltip-label">오전</span>
+                              <span className="marker-tooltip-value">
+                                {skyDetailText(item.tomorrow.amSky)}
+                              </span>
+                            </div>
+                            <div className="marker-tooltip-row">
+                              <span className="marker-tooltip-label">오후</span>
+                              <span className="marker-tooltip-value">
+                                {skyDetailText(item.tomorrow.pmSky)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     );
@@ -291,18 +311,18 @@ export default async function Page() {
             </section>
 
             <div className="right-column">
-  <PrecipChart rows={precipRows} />
+              <PrecipChart rows={precipRows} />
 
-  <section className="card forecast-card">
-    <div className="section-header section-header-tight">
-      <h2>예상날씨(℃)</h2>
-    </div>
-    <div className="forecast-grid">
-      <CompactDayTable title="내일" rows={tableRows} kind="dayAfterTomorrow" />
-      <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
-    </div>
-  </section>
-</div>
+              <section className="card forecast-card">
+                <div className="section-header section-header-tight">
+                  <h2>예상날씨(℃)</h2>
+                </div>
+                <div className="forecast-grid">
+                  <CompactDayTable title="내일" rows={tableRows} kind="dayAfterTomorrow" />
+                  <CompactDayTable title="모레" rows={tableRows} kind="threeDaysLater" />
+                </div>
+              </section>
+            </div>
 
             <section className="card dust-card">
               <div className="section-header section-header-tight dust-header">

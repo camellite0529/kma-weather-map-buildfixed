@@ -18,7 +18,6 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-width: 0;
   background: var(--bg);
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
@@ -26,23 +25,15 @@ body {
 
 body {
   min-height: 100vh;
-  overflow-x: auto;
 }
 
 .page {
-  min-height: 100vh;
-  padding: 12px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  overflow-x: auto;
+  padding: 12px 0;
 }
 
 .a4-sheet {
   width: 210mm;
-  min-width: 210mm;
   min-height: 297mm;
-  flex: 0 0 auto;
   margin: 0 auto;
   background: var(--paper);
   padding: 6mm 6mm 7mm;
@@ -186,7 +177,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2.2mm;
-}
+} 
 
 .layout-map {
   min-height: 0;
@@ -224,6 +215,7 @@ body {
 }
 
 .marker-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.3mm;
@@ -258,6 +250,53 @@ body {
 .marker-temp {
   color: #333333;
   white-space: nowrap;
+}
+
+.marker-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 1.2mm);
+  transform: translateX(-50%);
+  min-width: 18mm;
+  padding: 1.2mm 1.6mm;
+  border-radius: 1.6mm;
+  background: rgba(17, 17, 17, 0.94);
+  color: #ffffff;
+  font-size: 2.8mm;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 1.2mm 3mm rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+  z-index: 20;
+}
+
+.marker-tooltip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.4mm;
+}
+
+.marker-tooltip-row + .marker-tooltip-row {
+  margin-top: 0.6mm;
+}
+
+.marker-tooltip-label {
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+}
+
+.marker-tooltip-value {
+  font-weight: 700;
+}
+
+.map-marker:hover .marker-tooltip,
+.map-marker:focus-within .marker-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .top-layout > .astro-card {
@@ -434,7 +473,7 @@ body {
 
 .forecast-card {
   padding-top: 0;
-  margin-top: 0.5mm;
+  margin-top: -0.6mm;
 }
 
 .forecast-grid {
@@ -453,7 +492,7 @@ body {
   background: #efefef;
   font-size: 3.3mm;
   font-weight: 700;
-  padding: 1.5mm 1.6mm;
+  padding: 1mm 1.6mm;
   line-height: 1.1;
 }
 
@@ -487,7 +526,7 @@ body {
   grid-column: 1 / -1;
   padding-top: 0.4mm;
   margin-top: -0.8mm;
-}
+} 
 
 .dust-header {
   align-items: center;
@@ -507,7 +546,7 @@ body {
   font-size: 2.3mm;
   color: var(--muted);
   white-space: nowrap;
-}
+} 
 
 .dust-table {
   display: flex;
@@ -576,7 +615,7 @@ body {
 .dust-very-bad {
   background: #e53e3e;
   color: #e53e3e;
-}
+} 
 
 .dust-legend {
   display: flex;
@@ -605,19 +644,14 @@ body {
   html,
   body {
     background: #fff;
-    overflow: visible;
   }
 
   .page {
-    min-height: auto;
     padding: 0;
-    display: block;
-    overflow: visible;
   }
 
   .a4-sheet {
     width: auto;
-    min-width: 0;
     min-height: auto;
     margin: 0;
     padding: 0;
@@ -634,6 +668,7 @@ body {
   .top-layout {
     margin-bottom: 2mm;
   }
+  
 
   .today-note-section {
     margin-bottom: 0;
@@ -666,9 +701,122 @@ body {
     font-size: 2.8mm;
   }
 
+  .marker-tooltip {
+    display: none !important;
+  }
+
   .dust-circle {
     border: 0.35mm solid #000;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+}
+
+@media screen and (max-width: 1100px) {
+  .a4-sheet {
+    width: 100%;
+    min-height: auto;
+    padding: 20px;
+  }
+  .top-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .news-layout {
+    grid-template-columns: 1fr;
+  }
+  .right-column {
+    gap: 20px;
+  }
+  .top-layout > .astro-card {
+    margin-top: 9.6mm;
+  }
+
+  .dust-table-head,
+  .dust-table-row {
+    grid-template-columns: 56px repeat(12, minmax(44px, 1fr));
+    min-width: 760px;
+  }
+  .top-layout > .astro-card {
+  margin-top: 0;
+  }
+  .dust-table {
+    overflow-x: auto;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .today-note-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .today-note-title {
+    font-size: 18px;
+  }
+
+  .today-note-short {
+    height: 38px;
+    font-size: 18px;
+  }
+
+  .today-note-long {
+  min-height: 72px;
+  font-size: 13px;
+  padding: 10px 12px;
+}
+  .dust-meta {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+  .forecast-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .map-marker {
+    min-width: 82px;
+    max-width: 112px;
+  }
+
+  .marker-weather {
+    font-size: 14px;
+  }
+
+  .marker-line {
+    font-size: 10px;
+  }
+
+  .astro-row {
+    font-size: 11px;
+    grid-template-columns: 16px 34px 1fr 34px 1fr;
+  }
+
+  .precip-card .section-header h2 {
+    font-size: 14px;
+  }
+
+  .precip-legend {
+    font-size: 10px;
+  }
+
+  .precip-row-item {
+    grid-template-columns: 44px 1fr 40px;
+  }
+
+  .precip-label {
+    font-size: 10px;
+  }
+
+  .precip-values {
+    gap: 2px;
+    font-size: 10px;
+  }
+
+  .forecast-table-grid th,
+  .forecast-table-grid td {
+    font-size: 11px;
+    padding: 4px 6px;
   }
 }
