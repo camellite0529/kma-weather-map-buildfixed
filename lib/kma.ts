@@ -16,6 +16,8 @@ export type DailyWeather = {
   minTemp: number | null;
   maxTemp: number | null;
   sky: string | null;
+  amSky: string | null;
+  pmSky: string | null;
   amPop: number | null;
   pmPop: number | null;
 };
@@ -337,19 +339,6 @@ function mergeMorningAfternoonWeather(
   return morning;
 }
 
-function pickRepresentativeWeather(
-  items: ForecastItem[],
-  targetDate: string,
-): WeatherLabel | null {
-  const dayItems = items.filter((item) => item.fcstDate === targetDate);
-
-  const morning = pickHalfDayWeather(dayItems, 600, 1200, 900);
-  const afternoon = pickHalfDayWeather(dayItems, 1200, 2400, 1500);
-
-  return mergeMorningAfternoonWeather(morning, afternoon);
-}
-
-
 function getPrecipCategoryItems(dayItems: ForecastItem[]) {
   return dayItems.filter(
     (item) => item.category === "POP" || item.category === "ST",
@@ -388,11 +377,16 @@ export function summarizeDailyWeather(
   const amPop = amItems.length ? Math.max(...amItems.map((item) => item.value)) : null;
   const pmPop = pmItems.length ? Math.max(...pmItems.map((item) => item.value)) : null;
 
+  const amSky = pickHalfDayWeather(dayItems, 600, 1200, 900);
+  const pmSky = pickHalfDayWeather(dayItems, 1200, 2400, 1500);
+
   return {
     date: targetDate,
     minTemp,
     maxTemp,
-    sky: pickRepresentativeWeather(items, targetDate),
+    sky: mergeMorningAfternoonWeather(amSky, pmSky),
+    amSky,
+    pmSky,
     amPop,
     pmPop,
   };
