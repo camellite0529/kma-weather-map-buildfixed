@@ -230,13 +230,13 @@ export default async function Page() {
                 <input
                   className="today-note-short"
                   defaultValue=""
-                  placeholder="우산 챙기세요"
+                  placeholder="날씨 제목 여기에"
                 />
               </div>
               <textarea
                 className="today-note-long"
                 defaultValue=""
-                placeholder="전국이 대체로 흐리고 곳곳에 비가 내리겠다."
+                placeholder="여기에 본문을 입력해 주세요."
               />
             </section>
 
