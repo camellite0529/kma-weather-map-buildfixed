@@ -151,14 +151,11 @@ export function getBaseDateTime() {
 
 export function getTargetDate(offsetDays: number) {
   const now = new Date();
-  const kstNow = new Date(
-    now.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
-  );
-  kstNow.setDate(kstNow.getDate() + offsetDays);
-
-  const yyyy = kstNow.getFullYear();
-  const mm = String(kstNow.getMonth() + 1).padStart(2, "0");
-  const dd = String(kstNow.getDate()).padStart(2, "0");
+    now.setUTCHours(now.getUTCHours() + 9 + (offsetDays * 24));
+  
+  const yyyy = now.getUTCFullYear();
+  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(now.getUTCDate()).padStart(2, "0");
 
   return `${yyyy}${mm}${dd}`;
 }
