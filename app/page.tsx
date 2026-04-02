@@ -204,10 +204,11 @@ export default async function Page() {
       getAstroTimes(),
       getDustData(),
     ]);
-
-    const tableRows = weather.data.filter((item) => TABLE_CITIES.includes(item.city));
-
+    
     const weatherByCity = new Map(weather.data.map((item) => [item.city, item]));
+    const tableRows = TABLE_CITIES.map((city) => weatherByCity.get(city)).filter(
+      (item): item is CityWeather => Boolean(item),
+    );
     const precipRows = PRECIP_CITIES.map((city) => weatherByCity.get(city)).filter(
       (item): item is CityWeather => Boolean(item),
     );
