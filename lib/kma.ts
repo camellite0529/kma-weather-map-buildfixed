@@ -128,7 +128,7 @@ function getKstParts(date = new Date()) {
 }
 
 export function getBaseDateTime() {
-  const now = new Date(Date.now() - 10 * 60 * 1000);
+  const now = new Date(Date.now() - 30 * 60 * 1000);
   const { year, month, day, hour, minute } = getKstParts(now);
   const hhmm = Number(`${hour}${minute}`);
   const baseTimes = [2300, 2000, 1700, 1400, 1100, 800, 500, 200];
@@ -195,8 +195,8 @@ export function ptyCodeToText(
 ): WeatherLabel | null {
   const code = String(value ?? "0");
 
-  if (code === "1" || code === "5") return "비";
-  if (code === "2" || code === "4" || code === "6") return "비나눈";
+  if (code === "1" || code === "5" || code === "4" ) return "비";
+  if (code === "2" || code === "6") return "비나눈";
   if (code === "3" || code === "7") return "눈";
 
   return null;
@@ -321,9 +321,7 @@ function mergeMorningAfternoonWeather(
   }
 
   if (
-    morning === "눈" &&
-    (isSkyGroup(afternoon) || afternoon === "비나눈")
-  ) {
+    morning === "눈" && isSkyGroup(afternoon)) {
     return "눈";
   }
 
@@ -341,8 +339,7 @@ function mergeMorningAfternoonWeather(
 
 function getPrecipCategoryItems(dayItems: ForecastItem[]) {
   return dayItems.filter(
-    (item) => item.category === "POP" || item.category === "ST",
-  );
+    (item) => item.category === "POP"  );
 }
 
 export function summarizeDailyWeather(
