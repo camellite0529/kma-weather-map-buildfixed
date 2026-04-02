@@ -95,11 +95,6 @@ function clearStoredApiKey() {
   }
 }
 
-/** 잘못된 키·인증 거부로 보일 때 저장된 키 제거 */
-function clearStoredKeyIfInvalid(message: string) {
-  if (/\b(401|403)\b/.test(message)) clearStoredApiKey();
-}
-
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -563,20 +558,25 @@ function bindWeatherRefresh(container: HTMLElement, apiKey: string) {
     if (png) png.disabled = true;
     if (settings) settings.disabled = true;
     setToolbarLoadState(container, "loading");
+    let showedKeyFormAfterError = false;
     try {
       await loadWeatherIntoApp(container, apiKey);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "날씨 정보를 불러오지 못했습니다.";
-      clearStoredKeyIfInvalid(message);
-      setToolbarLoadState(container, "error");
-      window.alert(message);
+      showApiKeyForm(container, message);
+      showedKeyFormAfterError = true;
     } finally {
       const refreshAgain = container.querySelector<HTMLButtonElement>(
         "#weather-refresh-btn",
       );
       const pngAgain = container.querySelector<HTMLButtonElement>("#png-download-btn");
       const settingsAgain = container.querySelector<HTMLButtonElement>("#settings-btn");
+      if (showedKeyFormAfterError) {
+        if (pngAgain) pngAgain.disabled = false;
+        if (settingsAgain) settingsAgain.disabled = false;
+        return;
+      }
       if (refreshAgain) {
         refreshAgain.disabled = false;
         refreshAgain.textContent = refreshLabel;
@@ -716,7 +716,6 @@ function attachApiKeyFormHandlers(
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "날씨 정보를 불러오지 못했습니다.";
-      clearStoredKeyIfInvalid(message);
       if (ctx.mode === "fullscreen") {
         showApiKeyForm(ctx.app, message);
       } else {
@@ -767,9 +766,7 @@ async function bootstrap() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "날씨 정보를 불러오지 못했습니다.";
-    clearStoredKeyIfInvalid(message);
-    setToolbarLoadState(root, "error");
-    window.alert(message);
+    showApiKeyForm(root, message);
   }
 }
 
