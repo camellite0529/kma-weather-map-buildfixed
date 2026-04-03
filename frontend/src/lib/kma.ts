@@ -17,6 +17,30 @@ export type ForecastItem = {
   fcstValue: string;
 };
 
+export type LandFcstItem = {
+  numEf: string | number;
+  announceTime?: string;
+  wf?: string;
+  rnSt?: string | number;
+  ta?: string | number;
+};
+
+export type LandSlotValue = {
+  wf: string | null;
+  rnSt: number | null;
+  ta: number | null;
+};
+
+export type LandSummary = {
+  announceTime: string | null;
+  tomorrowAm?: LandSlotValue;
+  tomorrowPm?: LandSlotValue;
+  day2Am?: LandSlotValue;
+  day2Pm?: LandSlotValue;
+  day3Am?: LandSlotValue;
+  day3Pm?: LandSlotValue;
+};
+
 export type DailyWeather = {
   date: string;
   minTemp: number | null;
