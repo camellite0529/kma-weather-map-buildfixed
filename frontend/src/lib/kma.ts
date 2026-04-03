@@ -7,6 +7,7 @@ export type City = {
   name: string;
   lat: number;
   lon: number;
+  regId: string;
 };
 
 export type ForecastItem = {
