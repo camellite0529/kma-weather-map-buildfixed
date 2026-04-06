@@ -502,6 +502,61 @@ export function summarizeDailyWeather(
   };
 }
 
+export function summarizeLandForecast(items: LandFcstItem[]): LandSummary {
+  if (!Array.isArray(items) || items.length === 0) {
+    return { announceTime: null };
+  }
+
+  const latestAnnounceTime =
+    [...items]
+      .map((item) => item.announceTime)
+      .filter(
+        (value): value is string | number =>
+          value != null && String(value).trim() !== "",
+      )
+      .sort((a, b) => {
+        const aa = Number(String(a).replace(/\D/g, ""));
+        const bb = Number(String(b).replace(/\D/g, ""));
+        return aa - bb;
+      })
+      .at(-1) ?? null;
+
+  if (!latestAnnounceTime) {
+    return { announceTime: null };
+  }
+
+  const latestItems = items.filter(
+    (item) => String(item.announceTime ?? "") === String(latestAnnounceTime),
+  );
+
+  const summary: LandSummary = {
+    announceTime: String(latestAnnounceTime),
+  };
+
+  for (const item of latestItems) {
+    const slot = resolveLandSlot(latestAnnounceTime, item.numEf);
+    if (!slot) continue;
+
+    summary[slot] = {
+      wf: item.wf ?? null,
+      wfCd: item.wfCd ?? null,
+      rnYn:
+        item.rnYn == null || item.rnYn === "" ? null : Number(item.rnYn),
+      rnSt:
+        item.rnSt == null || item.rnSt === "" ? null : Number(item.rnSt),
+      ta:
+        item.ta == null || item.ta === "" ? null : Number(item.ta),
+      label: landSlotToWeatherLabel({
+        rnYn: item.rnYn,
+        wfCd: item.wfCd ?? null,
+      }),
+    };
+  }
+
+  return summary;
+}
+
+
 export function latLonToGrid(lat: number, lon: number) {
   const RE = 6371.00877;
   const GRID = 5.0;

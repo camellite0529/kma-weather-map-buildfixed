@@ -252,22 +252,23 @@ async function fetchCityForecast(
 
     tomorrow: {
       ...villageTomorrow,
-      // 오전/오후 날씨: 통보문 rnYn 우선, wfCd 보조
+      minTemp: land.tomorrowAm?.ta ?? villageTomorrow.minTemp,
+      maxTemp: land.tomorrowPm?.ta ?? villageTomorrow.maxTemp,
       amSky: tomorrowAmLabel,
       pmSky: tomorrowPmLabel,
-      // 오전/오후 강수확률: 통보문 rnSt
       amPop: land.tomorrowAm?.rnSt ?? villageTomorrow.amPop,
       pmPop: land.tomorrowPm?.rnSt ?? villageTomorrow.pmPop,
-      // 대표 날씨: 위 오전/오후 라벨을 규칙대로 합성
       sky:
-      mergeLandMorningAfternoonWeather(
-      toWeatherLabelLike(tomorrowAmLabel),
-      toWeatherLabelLike(tomorrowPmLabel),
-      ) ?? villageTomorrow.sky,
+        mergeLandMorningAfternoonWeather(
+          toWeatherLabelLike(tomorrowAmLabel),
+          toWeatherLabelLike(tomorrowPmLabel),
+        ) ?? villageTomorrow.sky,
     },
 
     dayAfterTomorrow: {
       ...villageDay2,
+      minTemp: land.day2Am?.ta ?? villageDay2.minTemp,
+      maxTemp: land.day2Pm?.ta ?? villageDay2.maxTemp,
       amSky: day2AmLabel,
       pmSky: day2PmLabel,
       sky:
@@ -279,6 +280,8 @@ async function fetchCityForecast(
 
     threeDaysLater: {
       ...villageDay3,
+      minTemp: land.day3Am?.ta ?? villageDay3.minTemp,
+      maxTemp: land.day3Pm?.ta ?? villageDay3.maxTemp,
       amSky: day3AmLabel,
       pmSky: day3PmLabel,
       sky:
@@ -296,7 +299,6 @@ async function fetchCityForecast(
         : null,
   };
 }
-
 
 async function runInBatches<T, R>(
   items: T[],
