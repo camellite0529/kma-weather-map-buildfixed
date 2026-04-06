@@ -315,7 +315,20 @@ function resolveLandSlot(
 
   if (!Number.isFinite(numEf) || hour == null) return null;
 
-  // 현재 샘플로 확정된 11시 발표분만 적용
+  // 05시 발표
+  // 0=오늘오전, 1=오늘오후, 2=내일오전, 3=내일오후, 4=모레오전, 5=모레오후, 6=글피오전, 7=글피오후
+  if (hour >= 5 && hour < 11) {
+    if (numEf === 2) return "tomorrowAm";
+    if (numEf === 3) return "tomorrowPm";
+    if (numEf === 4) return "day2Am";
+    if (numEf === 5) return "day2Pm";
+    if (numEf === 6) return "day3Am";
+    if (numEf === 7) return "day3Pm";
+    return null;
+  }
+
+  // 11시 발표
+  // 0=오늘오후, 1=내일오전, 2=내일오후, 3=모레오전, 4=모레오후, 5=글피오전, 6=글피오후
   if (hour >= 11 && hour < 17) {
     if (numEf === 1) return "tomorrowAm";
     if (numEf === 2) return "tomorrowPm";
@@ -323,64 +336,23 @@ function resolveLandSlot(
     if (numEf === 4) return "day2Pm";
     if (numEf === 5) return "day3Am";
     if (numEf === 6) return "day3Pm";
-    return null; // numEf=0 은 오늘 오후
+    return null;
   }
 
-  // 05시 / 17시 발표분은 샘플 확보 전까지 미해석
+  // 17시 발표
+  // 0=오늘밤, 1=내일오전, 2=내일오후, 3=모레오전, 4=모레오후, 5=글피오전, 6=글피오후, 7=그글피오전, 8=그글피오후
+  if (hour >= 17) {
+    if (numEf === 1) return "tomorrowAm";
+    if (numEf === 2) return "tomorrowPm";
+    if (numEf === 3) return "day2Am";
+    if (numEf === 4) return "day2Pm";
+    if (numEf === 5) return "day3Am";
+    if (numEf === 6) return "day3Pm";
+    return null;
+  }
+
   return null;
 }
-
-export function summarizeLandForecast(items: LandFcstItem[]): LandSummary {
-  if (!Array.isArray(items) || items.length === 0) {
-    return { announceTime: null };
-  }
-
-  const latestAnnounceTime =
-    [...items]
-      .map((item) => item.announceTime ?? "")
-      .filter(Boolean)
-      .sort()
-      .at(-1) ?? null;
-
-  if (!latestAnnounceTime) {
-    return { announceTime: null };
-  }
-
-  const latestItems = items.filter(
-    (item) => String(item.announceTime ?? "") === String(latestAnnounceTime),
-  );
-
-  const summary: LandSummary = { announceTime: latestAnnounceTime };
-
-  for (const item of latestItems) {
-    const slot = resolveLandSlot(latestAnnounceTime, item.numEf);
-    if (!slot) continue;
-
-    summary[slot] = {
-    wf: item.wf ?? null,
-    wfCd: item.wfCd ?? null,
-    rnYn:
-      item.rnYn == null || item.rnYn === ""
-      ? null
-      : Number(item.rnYn),
-    rnSt:
-      item.rnSt == null || item.rnSt === ""
-      ? null
-      : Number(item.rnSt),
-    ta:
-      item.ta == null || item.ta === ""
-      ? null
-      : Number(item.ta),
-    label: landSlotToWeatherLabel({
-      rnYn: item.rnYn,
-      wfCd: item.wfCd ?? null,
-      }),
-    };
-  }
-
-  return summary;
-}
-
 
 function pickHalfDayWeather(
   dayItems: ForecastItem[],
