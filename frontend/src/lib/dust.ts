@@ -1,19 +1,27 @@
 import { getTargetDate } from "./kma";
 import dustRegionGroupsJson from "../../data/dust-region-groups.json";
 
-export type DustLevel = "좋음" | "보통" | "나쁨" | "매우 나쁨";
+export type DustLevel = "좋음" | "보통" | "나쁨" | "매우 나쁨" | "unknown";
+
+type KnownDustLevel = Exclude<DustLevel, "unknown">;
 
 export type DustRegionItem = {
-  region: string;
   displayLabel: string;
   pm10: DustLevel;
   pm25: DustLevel;
+  details?: DustRegionDetailItem[];
 };
 
 export type DustData = {
   dataTime: string | null;
   announcedAt: string | null;
   regions: DustRegionItem[];
+};
+
+export type DustRegionDetailItem = {
+  label: string;
+  pm10: DustLevel;
+  pm25: DustLevel;
 };
 
 type DustForecastItem = {
@@ -32,11 +40,17 @@ function dustApiOrigin(): string {
 
 const BASE_URL = `${dustApiOrigin()}/api/MinuDustFrcstDspthSvrc/v1/getMinuDustFrcstDspth`;
 
-const REGION_GROUPS = dustRegionGroupsJson as readonly {
+type DustRegionGroup = {
   region: string;
   displayLabel: string;
   aliases: readonly string[];
-}[];
+  breakdowns?: readonly {
+    label: string;
+    aliases: readonly string[];
+  }[];
+};
+
+const REGION_GROUPS = dustRegionGroupsJson as readonly DustRegionGroup[];
 
 function getTodayKST() {
   const now = new Date();
@@ -66,33 +80,93 @@ function isLikelyEncodedKey(value: string) {
   return /%[0-9A-Fa-f]{2}/.test(value);
 }
 
-function normalizeDustLevel(text: string): DustLevel {
+function normalizeDustLevel(text: string): KnownDustLevel {
   if (text.includes("매우나쁨") || text.includes("매우 나쁨")) return "매우 나쁨";
   if (text.includes("나쁨")) return "나쁨";
   if (text.includes("보통")) return "보통";
   return "좋음";
 }
 
-function rank(level: DustLevel) {
+function rank(level: KnownDustLevel) {
   if (level === "좋음") return 1;
   if (level === "보통") return 2;
   if (level === "나쁨") return 3;
   return 4;
 }
 
-function worstOf(levels: DustLevel[]) {
-  if (!levels.length) return "보통" as DustLevel;
+function isKnownDustLevel(level: DustLevel): level is KnownDustLevel {
+  return level !== "unknown";
+}
+
+function worstOf(levels: KnownDustLevel[]): DustLevel {
+  if (!levels.length) return "unknown";
   return [...levels].sort((a, b) => rank(b) - rank(a))[0];
 }
 
-function pickRegionGrade(informGrade: string, alias: string): DustLevel | null {
-  const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(
-    `${escaped}\\s*[:：]\\s*(좋음|보통|나쁨|매우나쁨|매우 나쁨)`,
-  );
-  const match = informGrade.match(regex);
-  if (!match?.[1]) return null;
-  return normalizeDustLevel(match[1]);
+function parseRegionGrades(informGrade: string) {
+  const regionGrades = new Map<string, KnownDustLevel>();
+  const normalized = informGrade.replace(/\s+/g, " ").trim();
+  const pattern =
+    /([^:：]+?)\s*[:：]\s*(좋음|보통|나쁨|매우나쁨|매우 나쁨)(?=(?:,|$))/g;
+
+  for (const match of normalized.matchAll(pattern)) {
+    const regionsPart = match[1]?.trim();
+    const level = match[2] ? normalizeDustLevel(match[2]) : null;
+
+    if (!regionsPart || !level) continue;
+
+    for (const rawRegion of regionsPart.split(",")) {
+      const region = rawRegion.trim();
+      if (!region) continue;
+      regionGrades.set(region, level);
+    }
+  }
+
+  return regionGrades;
+}
+
+function resolveRegionGrade(
+  regionGrades: Map<string, KnownDustLevel>,
+  aliases: readonly string[],
+): DustLevel {
+  for (const alias of aliases) {
+    const grade = regionGrades.get(alias);
+    if (grade) return grade;
+  }
+
+  return "unknown";
+}
+
+function createRegionDetails(
+  group: DustRegionGroup,
+  pm10RegionGrades: Map<string, KnownDustLevel>,
+  pm25RegionGrades: Map<string, KnownDustLevel>,
+): DustRegionDetailItem[] | undefined {
+  if (!group.breakdowns?.length) return undefined;
+
+  return group.breakdowns.map((breakdown) => ({
+    label: breakdown.label,
+    pm10: resolveRegionGrade(pm10RegionGrades, breakdown.aliases),
+    pm25: resolveRegionGrade(pm25RegionGrades, breakdown.aliases),
+  }));
+}
+
+function summarizeRegionGrade(
+  group: DustRegionGroup,
+  regionGrades: Map<string, KnownDustLevel>,
+  details: DustRegionDetailItem[] | undefined,
+  key: "pm10" | "pm25",
+): DustLevel {
+  const detailGrades =
+    details
+      ?.map((detail) => detail[key])
+      .filter((grade): grade is KnownDustLevel => isKnownDustLevel(grade)) ?? [];
+
+  if (detailGrades.length) {
+    return worstOf(detailGrades);
+  }
+
+  return resolveRegionGrade(regionGrades, group.aliases);
 }
 
 function normalizeAnnouncedAt(value?: string) {
@@ -174,21 +248,19 @@ export async function getDustData(airkoreaServiceKey: string): Promise<DustData>
   const pm10GradeText = pm10Data.informGrade ?? "";
   const pm25GradeText = pm25Data.informGrade ?? "";
   const announcedAtRaw = pm10Data.dataTime ?? pm25Data.dataTime ?? null;
+  const pm10RegionGrades = parseRegionGrades(pm10GradeText);
+  const pm25RegionGrades = parseRegionGrades(pm25GradeText);
 
-  const regions: DustRegionItem[] = REGION_GROUPS.map((group) => ({
-    region: group.region,
-    displayLabel: group.displayLabel,
-    pm10: worstOf(
-      group.aliases
-        .map((alias) => pickRegionGrade(pm10GradeText, alias))
-        .filter((x): x is DustLevel => Boolean(x)),
-    ),
-    pm25: worstOf(
-      group.aliases
-        .map((alias) => pickRegionGrade(pm25GradeText, alias))
-        .filter((x): x is DustLevel => Boolean(x)),
-    ),
-  }));
+  const regions: DustRegionItem[] = REGION_GROUPS.map((group) => {
+    const details = createRegionDetails(group, pm10RegionGrades, pm25RegionGrades);
+
+    return {
+      displayLabel: group.displayLabel,
+      pm10: summarizeRegionGrade(group, pm10RegionGrades, details, "pm10"),
+      pm25: summarizeRegionGrade(group, pm25RegionGrades, details, "pm25"),
+      details,
+    };
+  });
 
   return {
     dataTime: targetDate,
@@ -197,16 +269,14 @@ export async function getDustData(airkoreaServiceKey: string): Promise<DustData>
   };
 }
 
-/** API 호출 전 자리 표시용(시간·등급은 아직 없음) */
 export function createEmptyDustData(): DustData {
   return {
     dataTime: null,
     announcedAt: null,
     regions: REGION_GROUPS.map((group) => ({
-      region: group.region,
       displayLabel: group.displayLabel,
-      pm10: "보통",
-      pm25: "보통",
+      pm10: "unknown",
+      pm25: "unknown",
     })),
   };
 }

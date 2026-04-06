@@ -312,7 +312,7 @@ body {
   margin: 0;
   font-size: 4.8mm;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 9mm;
   white-space: nowrap;
 }
 
@@ -322,13 +322,14 @@ body {
   width: auto;
   height: 9mm;
   border: none;
-  background: transparent;
+  background: #f1f1f1;
   font-family: inherit;
   font-size: 4.8mm;
   font-weight: 700;
   line-height: 9mm;
   outline: none;
-  padding: 0;
+  padding: 0 2.4mm;
+  border-radius: 1.6mm;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -336,7 +337,7 @@ body {
 
 .today-note-long {
   width: 100%;
-  min-height: 15mm;
+  min-height: 21.5mm;
   resize: none;
   border: none;
   background: #f1f1f1;
@@ -346,6 +347,13 @@ body {
   outline: none;
   padding: 2.2mm 2.4mm;
   border-radius: 1.6mm;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.today-note-long::-webkit-scrollbar {
+  display: none;
 }
 
 .today-note-short::placeholder,
@@ -386,18 +394,60 @@ body {
   align-items: start;
 }
 
+.layout-map {
+  margin-top: 0.8mm;
+}
+
+.layout-map .section-header h2 {
+  font-size: 5.3mm;
+  line-height: 1.02;
+}
+
+.layout-map .map-shell {
+  margin-top: 4.7mm;
+}
+
 .right-column {
   display: flex;
   flex-direction: column;
   gap: 2.2mm;
 }
 
-.top-layout > .astro-card {
-  margin-top: 10.2mm;
+.astro-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2.8mm;
+  align-self: start;
+}
+
+.astro-side > .astro-card {
+  margin-top: 0;
   padding: 1.8mm 2.2mm;
   background: #eef1f6;
   border-radius: 2mm;
-  align-self: start;
+}
+
+.notice-link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-end;
+  min-height: 6.2mm;
+  padding: 0 2.2mm;
+  border-radius: 999px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 2.8mm;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  margin-top: 1.2mm;
+  margin-bottom: 0;
+}
+
+.notice-link-btn:hover,
+.notice-link-btn:focus-visible {
+  background: #2d3748;
 }
 
 .astro-row {
@@ -668,6 +718,12 @@ body {
   word-break: keep-all;
 }
 
+.dust-col-head.dust-detail,
+.dust-cell.dust-detail {
+  position: relative;
+  cursor: help;
+}
+
 .dust-row-label {
   font-size: 3mm;
   font-weight: 700;
@@ -710,6 +766,12 @@ body {
   color: #e53e3e;
 }
 
+.dust-unknown {
+  background: transparent;
+  color: #718096;
+  border-style: dashed;
+}
+
 .dust-legend {
   display: flex;
   justify-content: flex-end;
@@ -722,6 +784,12 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.9mm;
+}
+
+.dust-detail:hover .marker-tooltip,
+.dust-detail:focus-within .marker-tooltip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .error-card {

@@ -3,7 +3,15 @@
   { "region": "인천", "displayLabel": "인천", "aliases": ["인천"] },
   { "region": "경기북부", "displayLabel": "경기\n북부", "aliases": ["경기북부"] },
   { "region": "경기남부", "displayLabel": "경기\n남부", "aliases": ["경기남부"] },
-  { "region": "강원", "displayLabel": "강원", "aliases": ["강원영서", "강원영동"] },
+  {
+    "region": "강원",
+    "displayLabel": "강원",
+    "aliases": [],
+    "breakdowns": [
+      { "label": "영서", "aliases": ["강원영서", "영서"] },
+      { "label": "영동", "aliases": ["강원영동", "영동"] }
+    ]
+  },
   { "region": "대전충남", "displayLabel": "대전\n충남", "aliases": ["대전", "충남"] },
   { "region": "세종충북", "displayLabel": "세종\n충북", "aliases": ["세종", "충북"] },
   { "region": "전북", "displayLabel": "전북", "aliases": ["전북"] },

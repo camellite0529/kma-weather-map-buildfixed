@@ -1,13 +1,13 @@
 import {
   MAP_CITIES,
-  getBaseDateTime,
   getTargetDate,
-  latLonToGrid,
-  summarizeDailyWeather,
   summarizeLandForecast,
   mergeLandMorningAfternoonWeather,
   type City,
+  type CityWeather,
+  type DailyWeather,
   type LandFcstItem,
+  type LandSlotValue,
 } from "./kma";
 
 function toWeatherLabelLike(value: string | null) {
@@ -33,8 +33,6 @@ function kmaApiOrigin(): string {
   return "https://apis.data.go.kr";
 }
 
-const BASE_URL =
-  `${kmaApiOrigin()}/1360000/VilageFcstInfoService_2.0/getVilageFcst`;
 const LAND_BASE_URL =
   `${kmaApiOrigin()}/1360000/VilageFcstMsgService/getLandFcst`;
 const REQUEST_TIMEOUT_MS = 12000;
@@ -45,28 +43,16 @@ type WeatherWarning = {
   message: string;
 };
 
-type DailyWeatherSummary = ReturnType<typeof summarizeDailyWeather>;
+type WeatherCityData = CityWeather;
 
-type CityForecastResult = {
-  city: string;
-  lat: number;
-  lon: number;
-  tomorrow: DailyWeatherSummary;
-  dayAfterTomorrow: DailyWeatherSummary;
-  threeDaysLater: DailyWeatherSummary;
+type CityForecastResult = WeatherCityData & {
+  announceTime: string | null;
 };
 
 export type WeatherResult = {
   base: { baseDate: string; baseTime: string };
   updatedAt: string;
-  data: Array<{
-    city: string;
-    lat: number;
-    lon: number;
-    tomorrow: DailyWeatherSummary;
-    dayAfterTomorrow: DailyWeatherSummary;
-    threeDaysLater: DailyWeatherSummary;
-  }>;
+  data: WeatherCityData[];
   warnings: WeatherWarning[];
 };
 
@@ -76,36 +62,6 @@ function isLikelyEncodedKey(value: string) {
 
 function normalizeServiceKey(rawKey: string) {
   return rawKey.trim();
-}
-
-function buildRequestUrl({
-  serviceKey,
-  baseDate,
-  baseTime,
-  nx,
-  ny,
-}: {
-  serviceKey: string;
-  baseDate: string;
-  baseTime: string;
-  nx: number;
-  ny: number;
-}) {
-  const encodedServiceKey = isLikelyEncodedKey(serviceKey)
-    ? serviceKey
-    : encodeURIComponent(serviceKey);
-
-  const params = new URLSearchParams({
-    pageNo: "1",
-    numOfRows: "2000",
-    dataType: "JSON",
-    base_date: baseDate,
-    base_time: baseTime,
-    nx: String(nx),
-    ny: String(ny),
-  });
-
-  return `${BASE_URL}?serviceKey=${encodedServiceKey}&${params.toString()}`;
 }
 
 async function fetchWithTimeout(url: string) {
@@ -140,11 +96,19 @@ function buildLandRequestUrl({
     regId,
   });
 
-  return `${LAND_BASE_URL}?serviceKey=${encodedServiceKey}&${params.toString()}`;
+  return `${LAND_BASE_URL}?ServiceKey=${encodedServiceKey}&${params.toString()}`;
 }
 
 async function fetchJsonWithValidation(url: string, cityName: string) {
-  const res = await fetchWithTimeout(url);
+  let res: Response;
+
+  try {
+    res = await fetchWithTimeout(url);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "알 수 없는 네트워크 오류";
+    throw new Error(`${cityName} API 연결 실패: ${message}`);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -153,7 +117,17 @@ async function fetchJsonWithValidation(url: string, cityName: string) {
     );
   }
 
-  const json = await res.json();
+  const raw = await res.text();
+  let json: any;
+
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      `${cityName} API 응답 파싱 실패: ${raw.slice(0, 120) || "빈 응답"}`,
+    );
+  }
+
   const resultCode = json?.response?.header?.resultCode;
   const resultMsg = json?.response?.header?.resultMsg;
 
@@ -164,29 +138,6 @@ async function fetchJsonWithValidation(url: string, cityName: string) {
   }
 
   return json;
-}
-
-async function fetchVillageForecast(serviceKey: string, city: City) {
-  const normalizedKey = normalizeServiceKey(serviceKey);
-  const { baseDate, baseTime } = getBaseDateTime();
-  const { nx, ny } = latLonToGrid(city.lat, city.lon);
-
-  const url = buildRequestUrl({
-    serviceKey: normalizedKey,
-    baseDate,
-    baseTime,
-    nx,
-    ny,
-  });
-
-  const json = await fetchJsonWithValidation(url, city.name);
-  const items = json?.response?.body?.items?.item ?? [];
-
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new Error(`${city.name} 예보 데이터가 비어 있습니다.`);
-  }
-
-  return items;
 }
 
 async function fetchLandForecast(
@@ -210,96 +161,81 @@ async function fetchLandForecast(
   return items;
 }
 
+function collectSlotTemperatures(slots: Array<LandSlotValue | undefined>) {
+  const values = slots
+    .map((slot) => slot?.ta)
+    .filter(
+      (value): value is number =>
+        typeof value === "number" && Number.isFinite(value),
+    );
+
+  return {
+    minTemp: values.length ? Math.min(...values) : null,
+    maxTemp: values.length ? Math.max(...values) : null,
+  };
+}
+
+function createDailyWeatherFromLand(
+  targetDate: string,
+  morning?: LandSlotValue,
+  afternoon?: LandSlotValue,
+): DailyWeather {
+  const amSky = morning?.label ?? null;
+  const pmSky = afternoon?.label ?? null;
+  const { minTemp, maxTemp } = collectSlotTemperatures([morning, afternoon]);
+
+  return {
+    minTemp,
+    maxTemp,
+    sky:
+      mergeLandMorningAfternoonWeather(
+        toWeatherLabelLike(amSky),
+        toWeatherLabelLike(pmSky),
+      ) ?? pmSky ?? amSky,
+    amSky,
+    pmSky,
+    amPop: morning?.rnSt ?? null,
+    pmPop: afternoon?.rnSt ?? null,
+  };
+}
+
+function summarizeBase(announceTime: string | null) {
+  const digits = String(announceTime ?? "").replace(/\D/g, "");
+
+  if (digits.length < 10) {
+    return { baseDate: "-", baseTime: "-" };
+  }
+
+  return {
+    baseDate: digits.slice(0, 8),
+    baseTime: digits.slice(8, 12).padEnd(4, "0"),
+  };
+}
+
 async function fetchCityForecast(
   serviceKey: string,
   city: City,
 ): Promise<CityForecastResult> {
-  const normalizedKey = normalizeServiceKey(serviceKey);
-
-  const [villageResult, landResult] = await Promise.allSettled([
-    fetchVillageForecast(normalizedKey, city),
-    fetchLandForecast(normalizedKey, city),
-  ]);
-
-  if (villageResult.status !== "fulfilled") {
-    throw villageResult.reason;
-  }
-
-  const tomorrowDate = getTargetDate(1);
-  const dayAfterTomorrowDate = getTargetDate(2);
-  const threeDaysLaterDate = getTargetDate(3);
-
-  const villageTomorrow = summarizeDailyWeather(
-    villageResult.value,
-    tomorrowDate,
-  );
-  const villageDay2 = summarizeDailyWeather(
-    villageResult.value,
-    dayAfterTomorrowDate,
-  );
-  const villageDay3 = summarizeDailyWeather(
-    villageResult.value,
-    threeDaysLaterDate,
-  );
-
-  const land =
-    landResult.status === "fulfilled"
-      ? summarizeLandForecast(landResult.value)
-      : { announceTime: null };
-
-  const tomorrowAmLabel = land.tomorrowAm?.label ?? villageTomorrow.amSky;
-  const tomorrowPmLabel = land.tomorrowPm?.label ?? villageTomorrow.pmSky;
-  const day2AmLabel = land.day2Am?.label ?? villageDay2.amSky;
-  const day2PmLabel = land.day2Pm?.label ?? villageDay2.pmSky;
-  const day3AmLabel = land.day3Am?.label ?? villageDay3.amSky;
-  const day3PmLabel = land.day3Pm?.label ?? villageDay3.pmSky;
+  const land = summarizeLandForecast(await fetchLandForecast(serviceKey, city));
 
   return {
     city: city.name,
-    lat: city.lat,
-    lon: city.lon,
-
-    tomorrow: {
-      ...villageTomorrow,
-      minTemp: land.tomorrowAm?.ta ?? villageTomorrow.minTemp,
-      maxTemp: land.tomorrowPm?.ta ?? villageTomorrow.maxTemp,
-      amSky: tomorrowAmLabel,
-      pmSky: tomorrowPmLabel,
-      amPop: land.tomorrowAm?.rnSt ?? villageTomorrow.amPop,
-      pmPop: land.tomorrowPm?.rnSt ?? villageTomorrow.pmPop,
-      sky:
-        mergeLandMorningAfternoonWeather(
-          toWeatherLabelLike(tomorrowAmLabel),
-          toWeatherLabelLike(tomorrowPmLabel),
-        ) ?? villageTomorrow.sky,
-    },
-
-    dayAfterTomorrow: {
-      ...villageDay2,
-      minTemp: land.day2Am?.ta ?? villageDay2.minTemp,
-      maxTemp: land.day2Pm?.ta ?? villageDay2.maxTemp,
-      amSky: day2AmLabel,
-      pmSky: day2PmLabel,
-      sky:
-        mergeLandMorningAfternoonWeather(
-          toWeatherLabelLike(day2AmLabel),
-          toWeatherLabelLike(day2PmLabel),
-        ) ?? villageDay2.sky,
-    },
-
-    threeDaysLater: {
-      ...villageDay3,
-      minTemp: land.day3Am?.ta ?? villageDay3.minTemp,
-      maxTemp: land.day3Pm?.ta ?? villageDay3.maxTemp,
-      amSky: day3AmLabel,
-      pmSky: day3PmLabel,
-      sky:
-        mergeLandMorningAfternoonWeather(
-          toWeatherLabelLike(day3AmLabel),
-          toWeatherLabelLike(day3PmLabel),
-        ) ?? villageDay3.sky,
-    },
-
+    announceTime: land.announceTime,
+    tomorrow: createDailyWeatherFromLand(
+      getTargetDate(1),
+      land.tomorrowAm,
+      land.tomorrowPm,
+    ),
+    dayAfterTomorrow: createDailyWeatherFromLand(
+      getTargetDate(2),
+      land.day2Am,
+      land.day2Pm,
+    ),
+    threeDaysLater: createDailyWeatherFromLand(
+      getTargetDate(3),
+      land.day3Am,
+      land.day3Pm,
+    ),
   };
 }
 
@@ -319,13 +255,27 @@ async function runInBatches<T, R>(
   return results;
 }
 
+function latestAnnounceTime(data: CityForecastResult[]) {
+  return (
+    [...data]
+      .map((item) => item.announceTime)
+      .filter((value): value is string => Boolean(value))
+      .sort((a, b) => {
+        const aa = Number(a.replace(/\D/g, ""));
+        const bb = Number(b.replace(/\D/g, ""));
+        return aa - bb;
+      })
+      .at(-1) ?? null
+  );
+}
+
 export async function getWeatherData(kmaServiceKey: string): Promise<WeatherResult> {
   const settled = await runInBatches(MAP_CITIES, CONCURRENCY, (city) =>
     fetchCityForecast(kmaServiceKey, city),
   );
 
-  const data = settled.flatMap((r) =>
-    r.status === "fulfilled" ? [r.value] : [],
+  const data = settled.flatMap((item) =>
+    item.status === "fulfilled" ? [item.value] : [],
   );
 
   const warnings = settled.flatMap((item) => {
@@ -333,7 +283,8 @@ export async function getWeatherData(kmaServiceKey: string): Promise<WeatherResu
     const message =
       item.reason instanceof Error ? item.reason.message : "알 수 없는 오류";
     const city =
-      MAP_CITIES.find((c) => message.startsWith(c.name))?.name ?? "일부 지역";
+      MAP_CITIES.find((candidate) => message.startsWith(candidate.name))?.name ??
+      "일부 지역";
     return [{ city, message }];
   });
 
@@ -342,10 +293,15 @@ export async function getWeatherData(kmaServiceKey: string): Promise<WeatherResu
     throw new Error(firstMessage);
   }
 
+  const latestBase = latestAnnounceTime(data);
+  const weatherData: WeatherCityData[] = data.map(
+    ({ announceTime: _announceTime, ...item }) => item,
+  );
+
   return {
-    base: getBaseDateTime(),
+    base: summarizeBase(latestBase),
     updatedAt: new Date().toISOString(),
-    data,
+    data: weatherData,
     warnings,
   };
 }

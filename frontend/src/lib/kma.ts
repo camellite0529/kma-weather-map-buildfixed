@@ -10,13 +10,6 @@ export type City = {
   regId: string;
 };
 
-export type ForecastItem = {
-  category: string;
-  fcstDate: string;
-  fcstTime: string;
-  fcstValue: string;
-};
-
 export type LandFcstItem = {
   announceTime?: string | number;
   numEf: string | number;
@@ -48,7 +41,6 @@ export type LandSummary = {
 };
 
 export type DailyWeather = {
-  date: string;
   minTemp: number | null;
   maxTemp: number | null;
   sky: string | null;
@@ -60,8 +52,6 @@ export type DailyWeather = {
 
 export type CityWeather = {
   city: string;
-  lat: number;
-  lon: number;
   tomorrow: DailyWeather;
   dayAfterTomorrow: DailyWeather;
   threeDaysLater: DailyWeather;
@@ -101,27 +91,6 @@ function getKstParts(date = new Date()) {
   };
 }
 
-export function getBaseDateTime() {
-  const now = new Date(Date.now() - 30 * 60 * 1000);
-  const { year, month, day, hour, minute } = getKstParts(now);
-  const hhmm = Number(`${hour}${minute}`);
-  const baseTimes = [2300, 2000, 1700, 1400, 1100, 800, 500, 200];
-  const selected = baseTimes.find((t) => hhmm >= t);
-
-  if (selected) {
-    return {
-      baseDate: `${year}${month}${day}`,
-      baseTime: String(selected).padStart(4, "0"),
-    };
-  }
-
-  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const y = getKstParts(yesterday);
-  return {
-    baseDate: `${y.year}${y.month}${y.day}`,
-    baseTime: "2300",
-  };
-}
 
 export function getTargetDate(offsetDays: number) {
   const now = new Date();
@@ -146,31 +115,6 @@ type WeatherLabel =
   | "비후갬"
   | "눈"
   | "비나눈";
-
-export function skyCodeToText(
-  value: string | number | null | undefined,
-): WeatherLabel | null {
-  const code = String(value ?? "");
-
-  if (code === "1") return "맑음";
-  if (code === "2") return "구름조금";
-  if (code === "3") return "구름많음";
-  if (code === "4") return "흐림";
-
-  return null;
-}
-
-export function ptyCodeToText(
-  value: string | number | null | undefined,
-): WeatherLabel | null {
-  const code = String(value ?? "0");
-
-  if (code === "1" || code === "5" || code === "4") return "비";
-  if (code === "2" || code === "6") return "비나눈";
-  if (code === "3" || code === "7") return "눈";
-
-  return null;
-}
 
 function wfCdToWeatherLabel(
   value: string | null | undefined,
@@ -272,14 +216,6 @@ export function mergeLandMorningAfternoonWeather(
   return afternoon ?? morning;
 }
 
-function pickClosestByTime<T extends ForecastItem>(items: T[], targetTime: number) {
-  return [...items].sort((a, b) => {
-    const diffA = Math.abs(Number(a.fcstTime) - targetTime);
-    const diffB = Math.abs(Number(b.fcstTime) - targetTime);
-    return diffA - diffB;
-  })[0];
-}
-
 function isClearGroup(label: WeatherLabel | null): boolean {
   return label === "맑음" || label === "구름조금";
 }
@@ -354,35 +290,6 @@ function resolveLandSlot(
   return null;
 }
 
-function pickHalfDayWeather(
-  dayItems: ForecastItem[],
-  startTime: number,
-  endTime: number,
-  targetTime: number,
-): WeatherLabel | null {
-  const halfItems = dayItems.filter((item) => {
-    const time = Number(item.fcstTime);
-    return Number.isFinite(time) && time >= startTime && time < endTime;
-  });
-
-  const ptyItems = halfItems.filter(
-    (item) => item.category === "PTY" && String(item.fcstValue) !== "0",
-  );
-
-  if (ptyItems.length) {
-    const pickedPty = pickClosestByTime(ptyItems, targetTime);
-    return ptyCodeToText(pickedPty?.fcstValue);
-  }
-
-  const skyItems = halfItems.filter((item) => item.category === "SKY");
-  if (skyItems.length) {
-    const pickedSky = pickClosestByTime(skyItems, targetTime);
-    return skyCodeToText(pickedSky?.fcstValue);
-  }
-
-  return null;
-}
-
 function mergeMorningAfternoonWeather(
   morning: WeatherLabel | null,
   afternoon: WeatherLabel | null,
@@ -451,57 +358,6 @@ function mergeMorningAfternoonWeather(
   return morning;
 }
 
-function getPrecipCategoryItems(dayItems: ForecastItem[]) {
-  return dayItems.filter((item) => item.category === "POP");
-}
-
-export function summarizeDailyWeather(
-  items: ForecastItem[],
-  targetDate: string,
-): DailyWeather {
-  const dayItems = items.filter((item) => item.fcstDate === targetDate);
-
-  const tmn = dayItems.find((item) => item.category === "TMN")?.fcstValue;
-  const tmx = dayItems.find((item) => item.category === "TMX")?.fcstValue;
-
-  const tmpValues = dayItems
-    .filter((item) => item.category === "TMP")
-    .map((item) => Number(item.fcstValue))
-    .filter((n) => Number.isFinite(n));
-
-  const minTemp =
-    tmn != null ? Number(tmn) : tmpValues.length ? Math.min(...tmpValues) : null;
-  const maxTemp =
-    tmx != null ? Number(tmx) : tmpValues.length ? Math.max(...tmpValues) : null;
-
-  const precipItems = getPrecipCategoryItems(dayItems)
-    .map((item) => ({
-      time: Number(item.fcstTime),
-      value: Number(item.fcstValue),
-    }))
-    .filter((item) => Number.isFinite(item.time) && Number.isFinite(item.value));
-
-  const amItems = precipItems.filter((item) => item.time >= 0 && item.time < 1200);
-  const pmItems = precipItems.filter((item) => item.time >= 1200 && item.time <= 2400);
-
-  const amPop = amItems.length ? Math.max(...amItems.map((item) => item.value)) : null;
-  const pmPop = pmItems.length ? Math.max(...pmItems.map((item) => item.value)) : null;
-
-  const amSky = pickHalfDayWeather(dayItems, 0, 1200, 900);
-  const pmSky = pickHalfDayWeather(dayItems, 1200, 2400, 1500);
-
-  return {
-    date: targetDate,
-    minTemp,
-    maxTemp,
-    sky: mergeMorningAfternoonWeather(amSky, pmSky),
-    amSky,
-    pmSky,
-    amPop,
-    pmPop,
-  };
-}
-
 export function summarizeLandForecast(items: LandFcstItem[]): LandSummary {
   if (!Array.isArray(items) || items.length === 0) {
     return { announceTime: null };
@@ -556,49 +412,6 @@ export function summarizeLandForecast(items: LandFcstItem[]): LandSummary {
   return summary;
 }
 
-
-export function latLonToGrid(lat: number, lon: number) {
-  const RE = 6371.00877;
-  const GRID = 5.0;
-  const SLAT1 = 30.0;
-  const SLAT2 = 60.0;
-  const OLON = 126.0;
-  const OLAT = 38.0;
-  const XO = 43;
-  const YO = 136;
-
-  const DEGRAD = Math.PI / 180.0;
-
-  const re = RE / GRID;
-  const slat1 = SLAT1 * DEGRAD;
-  const slat2 = SLAT2 * DEGRAD;
-  const olon = OLON * DEGRAD;
-  const olat = OLAT * DEGRAD;
-
-  let sn =
-    Math.tan(Math.PI * 0.25 + slat2 * 0.5) /
-    Math.tan(Math.PI * 0.25 + slat1 * 0.5);
-  sn = Math.log(Math.cos(slat1) / Math.cos(slat2)) / Math.log(sn);
-
-  let sf = Math.tan(Math.PI * 0.25 + slat1 * 0.5);
-  sf = (Math.pow(sf, sn) * Math.cos(slat1)) / sn;
-
-  let ro = Math.tan(Math.PI * 0.25 + olat * 0.5);
-  ro = re * sf / Math.pow(ro, sn);
-
-  let ra = Math.tan(Math.PI * 0.25 + lat * DEGRAD * 0.5);
-  ra = re * sf / Math.pow(ra, sn);
-
-  let theta = lon * DEGRAD - olon;
-  if (theta > Math.PI) theta -= 2.0 * Math.PI;
-  if (theta < -Math.PI) theta += 2.0 * Math.PI;
-  theta *= sn;
-
-  const nx = Math.floor(ra * Math.sin(theta) + XO + 0.5);
-  const ny = Math.floor(ro - ra * Math.cos(theta) + YO + 0.5);
-
-  return { nx, ny };
-}
 
 export function getMarkerPosition(city: string) {
   const fallback = { x: 50, y: 50 };

@@ -16,6 +16,7 @@ import {
   getDustData,
   type DustData,
   type DustLevel,
+  type DustRegionDetailItem,
 } from "./lib/dust";
 
 const STORAGE_API_KEY = "kma_weather_api_key";
@@ -116,12 +117,33 @@ function dustClassName(grade: DustLevel) {
   if (grade === "좋음") return "dust-circle dust-good";
   if (grade === "보통") return "dust-circle dust-normal";
   if (grade === "나쁨") return "dust-circle dust-bad";
+  if (grade === "unknown") return "dust-circle dust-unknown";
   return "dust-circle dust-very-bad";
+}
+
+function renderDustDetailTooltip(details: DustRegionDetailItem[] | undefined) {
+  if (!details?.length) return "";
+
+  return `
+    <div class="marker-tooltip" aria-hidden="true">
+      ${details
+        .map(
+          (detail) => `
+            <div class="marker-tooltip-row">
+              <span class="marker-tooltip-label">${escapeHtml(detail.label)}</span>
+              <span class="marker-tooltip-value">
+                미세먼지 ${escapeHtml(detail.pm10)} / 초미세먼지 ${escapeHtml(detail.pm25)}
+              </span>
+            </div>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
 }
 
 function emptyDaily(): DailyWeather {
   return {
-    date: "",
     minTemp: null,
     maxTemp: null,
     sky: null,
@@ -145,8 +167,6 @@ function createEmptyWeatherResult(): WeatherResult {
     updatedAt: "",
     data: MAP_CITIES.map((c) => ({
       city: c.name,
-      lat: c.lat,
-      lon: c.lon,
       tomorrow: emptyDaily(),
       dayAfterTomorrow: emptyDaily(),
       threeDaysLater: emptyDaily(),
@@ -325,21 +345,21 @@ function renderPage(
   const dustHead = dust.regions
     .map(
       (item) =>
-        `<div class="dust-col-head">${escapeHtml(item.displayLabel).replace(/\n/g, "<br />")}</div>`,
+        `<div class="dust-col-head${item.details?.length ? " dust-detail" : ""}"${item.details?.length ? ' tabindex="0"' : ""}>${escapeHtml(item.displayLabel).replace(/\n/g, "<br />")}${renderDustDetailTooltip(item.details)}</div>`,
     )
     .join("");
 
   const dustPm10 = dust.regions
     .map(
       (item) =>
-        `<div class="dust-cell"><span class="${dustClassName(item.pm10)}"></span></div>`,
+        `<div class="dust-cell${item.details?.length ? " dust-detail" : ""}"${item.details?.length ? ' tabindex="0"' : ""}><span class="${dustClassName(item.pm10)}"></span>${renderDustDetailTooltip(item.details)}</div>`,
     )
     .join("");
 
   const dustPm25 = dust.regions
     .map(
       (item) =>
-        `<div class="dust-cell"><span class="${dustClassName(item.pm25)}"></span></div>`,
+        `<div class="dust-cell${item.details?.length ? " dust-detail" : ""}"${item.details?.length ? ' tabindex="0"' : ""}><span class="${dustClassName(item.pm25)}"></span>${renderDustDetailTooltip(item.details)}</div>`,
     )
     .join("");
 
@@ -404,7 +424,17 @@ function renderPage(
               placeholder="여기에 본문을 입력해 주세요."
             >${escapeHtml(noteBody)}</textarea>
           </section>
-          ${renderAstroCard(astro)}
+          <div class="astro-side">
+            <a
+              class="notice-link-btn"
+              href="https://www.weather.go.kr/w/forecast/notice.do"
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              통보문
+            </a>
+            ${renderAstroCard(astro)}
+          </div>
         </div>
         ${warningsBlock}
         <div class="news-layout">
@@ -458,6 +488,7 @@ function renderPage(
               <span><span class="dust-circle dust-normal"></span> 보통</span>
               <span><span class="dust-circle dust-bad"></span> 나쁨</span>
               <span><span class="dust-circle dust-very-bad"></span> 매우 나쁨</span>
+              <span><span class="dust-circle dust-unknown"></span> unknown</span>
             </div>
           </section>
         </div>
@@ -507,11 +538,18 @@ function bindPngDownload(container: HTMLElement) {
 }
 
 async function loadWeatherIntoApp(app: HTMLElement, apiKey: string) {
-  const [weather, astro, dust] = await Promise.all([
-    getWeatherData(apiKey),
+  const weatherPromise = getWeatherData(apiKey);
+  const auxiliaryPromise = Promise.allSettled([
     getAstroTimes(apiKey),
     getDustData(apiKey),
   ]);
+
+  const weather = await weatherPromise;
+  const [astroResult, dustResult] = await auxiliaryPromise;
+  const astro = astroResult.status === "fulfilled" ? astroResult.value : EMPTY_ASTRO;
+  const dust =
+    dustResult.status === "fulfilled" ? dustResult.value : createEmptyDustData();
+
   app.innerHTML = renderPage(weather, astro, dust);
   bindPngDownload(app);
   bindTodayNotePersistence(app);
