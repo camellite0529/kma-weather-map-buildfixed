@@ -378,7 +378,7 @@ function renderPage(
     <main class="page">
       <div class="sheet-toolbar">
         <button type="button" class="settings-btn" id="settings-btn" aria-haspopup="dialog">
-          설정
+          키 설정
         </button>
         <div
           class="sheet-toolbar-status"
@@ -421,7 +421,7 @@ function renderPage(
             </div>
             <textarea
               class="today-note-long"
-              placeholder="여기에 본문을 입력해 주세요."
+              placeholder="여기에 본문을 입력해 주세요. 여기에 적은 내용은 이 컴퓨터에서만 저장됩니다."
             >${escapeHtml(noteBody)}</textarea>
           </section>
           <div class="astro-side">
