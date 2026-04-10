@@ -342,7 +342,7 @@ body {
   border: none;
   background: #f1f1f1;
   font-family: inherit;
-  font-size: 3.2mm;
+  font-size: 4.0mm;
   line-height: 1.35;
   outline: none;
   padding: 2.2mm 2.4mm;
@@ -404,7 +404,7 @@ body {
 }
 
 .layout-map .map-shell {
-  margin-top: 4.7mm;
+  margin-top: 0;
 }
 
 .right-column {
@@ -435,7 +435,7 @@ body {
   min-height: 6.2mm;
   padding: 0 2.2mm;
   border-radius: 999px;
-  background: #111111;
+  background: #6b7280;
   color: #ffffff;
   font-size: 2.8mm;
   font-weight: 700;
@@ -447,7 +447,7 @@ body {
 
 .notice-link-btn:hover,
 .notice-link-btn:focus-visible {
-  background: #2d3748;
+  background: #4b5563;
 }
 
 .notice-button-row {
@@ -518,6 +518,12 @@ body {
   flex-shrink: 0;
 }
 
+.precip-card {
+  --precip-label-col: 13mm;
+  --precip-value-col: 12mm;
+  --precip-col-gap: 2.2mm;
+}
+
 .precip-legend {
   display: flex;
   gap: 1.5mm;
@@ -561,7 +567,8 @@ body {
 .precip-scale {
   position: relative;
   height: 3mm;
-  margin: 0 0 0.6mm 16mm;
+  margin: 0 calc(var(--precip-value-col) + var(--precip-col-gap)) 0.6mm
+    calc(var(--precip-label-col) + var(--precip-col-gap));
   font-size: 2.35mm;
   color: var(--muted);
 }
@@ -580,8 +587,8 @@ body {
 
 .precip-row-item {
   display: grid;
-  grid-template-columns: 13mm 1fr 12mm;
-  gap: 2.2mm;
+  grid-template-columns: var(--precip-label-col) 1fr var(--precip-value-col);
+  gap: var(--precip-col-gap);
   align-items: center;
 }
 
@@ -850,7 +857,7 @@ body {
 
   .today-note-long {
     min-height: 15mm;
-    font-size: 3.1mm;
+    font-size: 3.3mm;
     line-height: 1.3;
     padding: 2mm 2.2mm;
   }

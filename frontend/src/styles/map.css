@@ -16,6 +16,16 @@
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
+.map-title {
+  position: absolute;
+  top: 2.2mm;
+  left: 2.4mm;
+  z-index: 3;
+  margin: 0;
+  font-size: 5.3mm;
+  line-height: 1.02;
+}
+
 .map-image {
   position: absolute;
   inset: 0;

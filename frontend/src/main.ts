@@ -27,6 +27,7 @@ const LEGACY_KEYS = [
 ] as const;
 const STORAGE_NOTE_TITLE = "kma_weather_note_title";
 const STORAGE_NOTE_BODY = "kma_weather_note_body";
+const STORAGE_NOTE_DATE = "kma_weather_note_date";
 
 type DataLoadToolbarState = "loading" | "complete" | "error";
 
@@ -93,6 +94,23 @@ function clearStoredApiKey() {
   localStorage.removeItem(STORAGE_API_KEY);
   for (const k of LEGACY_KEYS) {
     localStorage.removeItem(k);
+  }
+}
+
+function getTodayDateString(): string {
+  const today = new Date();
+  return today.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+}
+
+function resetNotesIfDayChanged(): void {
+  const today = getTodayDateString();
+  const lastNoteDate = localStorage.getItem(STORAGE_NOTE_DATE);
+  
+  if (lastNoteDate !== today) {
+    // Day has changed, reset the notes
+    localStorage.removeItem(STORAGE_NOTE_TITLE);
+    localStorage.removeItem(STORAGE_NOTE_BODY);
+    localStorage.setItem(STORAGE_NOTE_DATE, today);
   }
 }
 
@@ -421,7 +439,7 @@ function renderPage(
             </div>
             <textarea
               class="today-note-long"
-              placeholder="여기에 본문을 입력해 주세요. 여기에 적은 내용은 이 컴퓨터에서만 저장됩니다."
+              placeholder="여기에 본문을 입력해 주세요. 적은 내용은 이 컴퓨터에서만 저장됩니다. 프린트할 때 배경 그래픽에 꼭 체크!"
             >${escapeHtml(noteBody)}</textarea>
           </section>
           <div class="astro-side">
@@ -449,11 +467,9 @@ function renderPage(
         ${warningsBlock}
         <div class="news-layout">
           <section class="card layout-map">
-            <div class="section-header section-header-tight">
-              <h2>전국날씨(℃)</h2>
-            </div>
             <div class="map-shell">
               <div class="map-stage">
+                <h2 class="map-title">전국날씨(℃)</h2>
                 <img src="${import.meta.env.BASE_URL}map-bg.png" alt="대한민국 지도" class="map-image" />
                 ${markersHtml}
               </div>
@@ -475,7 +491,6 @@ function renderPage(
             <div class="section-header section-header-tight dust-header">
               <h2>오늘의 미세먼지</h2>
               <div class="dust-meta">
-                <span class="dust-time">${escapeHtml(dust.dataTime ?? "-")}</span>
                 <span class="dust-announced">발표: ${escapeHtml(dust.announcedAt ?? "-")}</span>
               </div>
             </div>
@@ -560,6 +575,7 @@ async function loadWeatherIntoApp(app: HTMLElement, apiKey: string) {
   const dust =
     dustResult.status === "fulfilled" ? dustResult.value : createEmptyDustData();
 
+  resetNotesIfDayChanged();
   app.innerHTML = renderPage(weather, astro, dust);
   bindPngDownload(app);
   bindTodayNotePersistence(app);
@@ -573,6 +589,7 @@ function showEmptyShell(
   options?: { loadToolbarState?: DataLoadToolbarState; keylessPreview?: boolean },
 ) {
   const loadToolbarState = options?.loadToolbarState ?? "complete";
+  resetNotesIfDayChanged();
   app.innerHTML = renderPage(
     createEmptyWeatherResult(),
     EMPTY_ASTRO,
@@ -643,6 +660,7 @@ function bindTodayNotePersistence(container: HTMLElement) {
   const save = () => {
     localStorage.setItem(STORAGE_NOTE_TITLE, titleEl.value);
     localStorage.setItem(STORAGE_NOTE_BODY, bodyEl.value);
+    localStorage.setItem(STORAGE_NOTE_DATE, getTodayDateString());
   };
   titleEl.addEventListener("input", save);
   bodyEl.addEventListener("input", save);
@@ -662,7 +680,7 @@ function renderApiKeyDialogHtml(saved: string, variant: "fullscreen" | "settings
       <div class="api-key-dialog" role="dialog" aria-modal="true" aria-labelledby="api-key-title">
         <h2 id="api-key-title">API 키 입력</h2>
         <p class="api-key-hint">
-          공공데이터포털 등에서 발급받은 서비스 키 하나를 입력하세요. 기상·미세먼지·천문 API에 동일하게 사용됩니다. 이 브라우저의 localStorage에 저장됩니다.
+          공공데이터포털에서 발급받은 서비스 키를 입력하세요. 기상·미세먼지·천문 API에 동일하게 사용됩니다. 이 브라우저의 localStorage에 저장됩니다.
         </p>
         <form id="api-key-form">
           <div class="api-key-field">
