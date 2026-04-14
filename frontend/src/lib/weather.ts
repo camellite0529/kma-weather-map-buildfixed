@@ -1,6 +1,5 @@
 import {
   MAP_CITIES,
-  getTargetDate,
   summarizeLandForecast,
   mergeLandMorningAfternoonWeather,
   computeLandPublishHighlights,
@@ -187,7 +186,6 @@ function collectSlotTemperatures(slots: Array<LandSlotValue | undefined>) {
 }
 
 function createDailyWeatherFromLand(
-  targetDate: string,
   morning?: LandSlotValue,
   afternoon?: LandSlotValue,
 ): DailyWeather {
@@ -253,17 +251,14 @@ async function fetchCityForecast(
   const items = await fetchLandForecast(serviceKey, city);
   const land = summarizeLandForecast(items);
   const tomorrow = createDailyWeatherFromLand(
-    getTargetDate(1),
     land.tomorrowAm,
     land.tomorrowPm,
   );
   const dayAfterTomorrow = createDailyWeatherFromLand(
-    getTargetDate(2),
     land.day2Am,
     land.day2Pm,
   );
   const threeDaysLater = createDailyWeatherFromLand(
-    getTargetDate(3),
     land.day3Am,
     land.day3Pm,
   );

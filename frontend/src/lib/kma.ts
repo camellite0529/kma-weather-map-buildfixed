@@ -1,7 +1,6 @@
 import mapCitiesJson from "../../data/map-cities.json";
 import tableCitiesJson from "../../data/table-cities.json";
 import mapMarkerPositionsJson from "../../data/map-marker-positions.json";
-import precipCitiesJson from "../../data/precip-cities.json";
 
 export type City = {
   name: string;
@@ -77,32 +76,9 @@ export type MarkerPosition = {
 
 export const MAP_CITIES: City[] = mapCitiesJson;
 export const TABLE_CITIES: string[] = tableCitiesJson;
-export const PRECIP_CITIES: readonly string[] = precipCitiesJson;
+export const PRECIP_CITIES: readonly string[] = tableCitiesJson;
 export const MAP_MARKER_POSITIONS: Record<string, MarkerPosition> =
   mapMarkerPositionsJson;
-
-function getKstParts(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-
-  const pick = (type: string) =>
-    parts.find((p) => p.type === type)?.value ?? "00";
-
-  return {
-    year: pick("year"),
-    month: pick("month"),
-    day: pick("day"),
-    hour: pick("hour"),
-    minute: pick("minute"),
-  };
-}
 
 
 export function getTargetDate(offsetDays: number) {
@@ -229,23 +205,6 @@ export function mergeLandMorningAfternoonWeather(
   return afternoon ?? morning;
 }
 
-function isClearGroup(label: WeatherLabel | null): boolean {
-  return label === "맑음" || label === "구름조금";
-}
-
-function isCloudGroup(label: WeatherLabel | null): boolean {
-  return label === "구름많음" || label === "흐림";
-}
-
-function isSkyGroup(label: WeatherLabel | null): boolean {
-  return (
-    label === "맑음" ||
-    label === "구름조금" ||
-    label === "구름많음" ||
-    label === "흐림"
-  );
-}
-
 function getAnnounceHour(
   announceTime: string | number | null | undefined,
 ): number | null {
@@ -301,74 +260,6 @@ function resolveLandSlot(
   }
 
   return null;
-}
-
-function mergeMorningAfternoonWeather(
-  morning: WeatherLabel | null,
-  afternoon: WeatherLabel | null,
-): WeatherLabel | null {
-  if (!morning && !afternoon) return null;
-  if (morning && !afternoon) return morning;
-  if (!morning && afternoon) return afternoon;
-
-  if (morning === afternoon) return morning;
-
-  if (
-    (morning === "맑음" && afternoon === "구름조금") ||
-    (morning === "구름조금" && afternoon === "맑음")
-  ) {
-    return "구름조금";
-  }
-
-  if (isCloudGroup(morning) && isCloudGroup(afternoon)) {
-    return "흐림";
-  }
-
-  if (morning === "비" && afternoon === "비나눈") {
-    return "비나눈";
-  }
-
-  if ((morning === "비나눈" || morning === "눈") && afternoon === "비") {
-    return "비나눈";
-  }
-
-  if ((morning === "비나눈" || morning === "비") && afternoon === "눈") {
-    return "비나눈";
-  }
-
-  if (isClearGroup(morning) && isCloudGroup(afternoon)) {
-    return "차차흐림";
-  }
-
-  if (isCloudGroup(morning) && isClearGroup(afternoon)) {
-    return "흐린후갬";
-  }
-
-  if (isSkyGroup(morning) && (afternoon === "비" || afternoon === "비나눈")) {
-    return "흐린후비";
-  }
-
-  if (isSkyGroup(morning) && afternoon === "눈") {
-    return "눈";
-  }
-
-  if ((morning === "비" || morning === "비나눈") && isSkyGroup(afternoon)) {
-    return "비후갬";
-  }
-
-  if (morning === "눈" && isSkyGroup(afternoon)) {
-    return "눈";
-  }
-
-  if (afternoon === "눈") return "눈";
-  if (afternoon === "비나눈") return "비나눈";
-  if (afternoon === "비") return "비";
-  if (isCloudGroup(afternoon)) return "흐림";
-  if (afternoon === "구름조금") return "구름조금";
-  if (afternoon === "구름많음") return "구름많음";
-  if (afternoon === "맑음") return "맑음";
-
-  return morning;
 }
 
 export function summarizeLandForecast(items: LandFcstItem[]): LandSummary {
