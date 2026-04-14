@@ -18,6 +18,11 @@ import {
   type DustLevel,
   type DustRegionDetailItem,
 } from "./lib/dust";
+import {
+  createEmptySeaForecastData,
+  getSeaForecastData,
+  type SeaForecastData,
+} from "./lib/sea";
 
 const STORAGE_API_KEY = "kma_weather_api_key";
 const LEGACY_KEYS = [
@@ -28,6 +33,9 @@ const LEGACY_KEYS = [
 const STORAGE_NOTE_TITLE = "kma_weather_note_title";
 const STORAGE_NOTE_BODY = "kma_weather_note_body";
 const STORAGE_NOTE_DATE = "kma_weather_note_date";
+
+/** 춘천–강릉, 세종–청주, 전주–부산 구간처럼 묶음 경계(해당 행 위 가로선을 굵게) */
+const PRECIP_STRONG_DIVIDER_BEFORE_CITY = new Set(["강릉", "청주", "부산"]);
 
 type DataLoadToolbarState = "loading" | "complete" | "error";
 
@@ -243,8 +251,11 @@ function renderPrecipChart(rows: CityWeather[]) {
         pmPercent > 0
           ? `<span class="precip-bar precip-bar-pm" style="width: ${pmPercent}%"></span>`
           : "";
+      const strongDivider = PRECIP_STRONG_DIVIDER_BEFORE_CITY.has(row.city)
+        ? " precip-row-strong"
+        : "";
       return `
-        <div class="precip-row-item">
+        <div class="precip-row-item${strongDivider}">
           <div class="precip-label">${escapeHtml(row.city)}</div>
           <div class="precip-track">${amBar}${pmBar}</div>
           <div class="precip-values">
@@ -460,6 +471,14 @@ function renderPage(
             >
               미세먼지
             </a>
+            <button
+              type="button"
+              class="notice-link-btn"
+              id="sea-forecast-btn"
+              aria-haspopup="dialog"
+            >
+              파고
+            </button>
           </div>
             ${renderAstroCard(astro)}
           </div>
@@ -522,6 +541,120 @@ function renderPage(
   `;
 }
 
+function renderSeaForecastDialogHtml(sea: SeaForecastData) {
+  const rows = sea.regions
+    .map((item) => {
+      const value = item.waveRangeText ? `${item.waveRangeText}m` : "-";
+      return `
+        <div class="sea-forecast-row">
+          <span class="sea-forecast-region">${escapeHtml(item.label)}</span>
+          <strong class="sea-forecast-value">${escapeHtml(value)}</strong>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="api-key-overlay" id="sea-forecast-overlay">
+      <div class="api-key-dialog sea-forecast-dialog" role="dialog" aria-modal="true" aria-labelledby="sea-forecast-title">
+        <h2 id="sea-forecast-title">내일 파고 예보</h2>
+        <div class="sea-forecast-list">
+          ${rows}
+        </div>
+        <p class="sea-forecast-summary" id="sea-forecast-summary">${escapeHtml(sea.summaryText)}</p>
+        <div class="api-key-actions">
+          <button type="button" id="sea-forecast-copy">복사</button>
+          <button type="button" class="secondary" id="sea-forecast-close">닫기</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function copyTextWithFallback(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  return new Promise((resolve, reject) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    try {
+      const copied = document.execCommand("copy");
+      if (!copied) {
+        reject(new Error("복사 실패"));
+        return;
+      }
+      resolve();
+    } catch (error) {
+      reject(error instanceof Error ? error : new Error("복사 실패"));
+    } finally {
+      textarea.remove();
+    }
+  });
+}
+
+function bindSeaForecastButton(app: HTMLElement, sea: SeaForecastData) {
+  const btn = app.querySelector<HTMLButtonElement>("#sea-forecast-btn");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    if (app.querySelector("#sea-forecast-overlay")) return;
+
+    app.insertAdjacentHTML("beforeend", renderSeaForecastDialogHtml(sea));
+    const overlay = app.querySelector<HTMLElement>("#sea-forecast-overlay");
+    if (!overlay) return;
+
+    const closeBtn =
+      overlay.querySelector<HTMLButtonElement>("#sea-forecast-close");
+    const copyBtn =
+      overlay.querySelector<HTMLButtonElement>("#sea-forecast-copy");
+
+    let escapeHandler: ((event: KeyboardEvent) => void) | null = null;
+
+    const dismiss = () => {
+      if (escapeHandler) {
+        document.removeEventListener("keydown", escapeHandler);
+        escapeHandler = null;
+      }
+      overlay.remove();
+    };
+
+    escapeHandler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") dismiss();
+    };
+
+    document.addEventListener("keydown", escapeHandler);
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) dismiss();
+    });
+    closeBtn?.addEventListener("click", dismiss);
+
+    copyBtn?.addEventListener("click", async () => {
+      const originalText = copyBtn.textContent;
+      copyBtn.disabled = true;
+      try {
+        await copyTextWithFallback(sea.summaryText);
+        copyBtn.textContent = "복사됨";
+      } catch {
+        copyBtn.textContent = "복사 실패";
+      } finally {
+        window.setTimeout(() => {
+          copyBtn.textContent = originalText ?? "복사";
+          copyBtn.disabled = false;
+        }, 1200);
+      }
+    });
+  });
+}
+
 function bindPngDownload(container: HTMLElement) {
   const btn = container.querySelector<HTMLButtonElement>("#png-download-btn");
   const sheet = container.querySelector<HTMLElement>("#weather-export-root");
@@ -567,13 +700,18 @@ async function loadWeatherIntoApp(app: HTMLElement, apiKey: string) {
   const auxiliaryPromise = Promise.allSettled([
     getAstroTimes(apiKey),
     getDustData(apiKey),
+    getSeaForecastData(apiKey),
   ]);
 
   const weather = await weatherPromise;
-  const [astroResult, dustResult] = await auxiliaryPromise;
+  const [astroResult, dustResult, seaResult] = await auxiliaryPromise;
   const astro = astroResult.status === "fulfilled" ? astroResult.value : EMPTY_ASTRO;
   const dust =
     dustResult.status === "fulfilled" ? dustResult.value : createEmptyDustData();
+  const sea =
+    seaResult.status === "fulfilled"
+      ? seaResult.value
+      : createEmptySeaForecastData();
 
   resetNotesIfDayChanged();
   app.innerHTML = renderPage(weather, astro, dust);
@@ -581,6 +719,7 @@ async function loadWeatherIntoApp(app: HTMLElement, apiKey: string) {
   bindTodayNotePersistence(app);
   bindWeatherRefresh(app, apiKey);
   bindSettingsButton(app);
+  bindSeaForecastButton(app, sea);
 }
 
 function showEmptyShell(
@@ -608,6 +747,7 @@ function showEmptyShell(
     bindWeatherRefresh(app, apiKey);
   }
   bindSettingsButton(app);
+  bindSeaForecastButton(app, createEmptySeaForecastData());
 }
 
 function bindWeatherRefresh(container: HTMLElement, apiKey: string) {
@@ -620,8 +760,10 @@ function bindWeatherRefresh(container: HTMLElement, apiKey: string) {
     btn.disabled = true;
     const png = container.querySelector<HTMLButtonElement>("#png-download-btn");
     const settings = container.querySelector<HTMLButtonElement>("#settings-btn");
+    const seaBtn = container.querySelector<HTMLButtonElement>("#sea-forecast-btn");
     if (png) png.disabled = true;
     if (settings) settings.disabled = true;
+    if (seaBtn) seaBtn.disabled = true;
     setToolbarLoadState(container, "loading");
     let showedKeyFormAfterError = false;
     try {
@@ -637,9 +779,12 @@ function bindWeatherRefresh(container: HTMLElement, apiKey: string) {
       );
       const pngAgain = container.querySelector<HTMLButtonElement>("#png-download-btn");
       const settingsAgain = container.querySelector<HTMLButtonElement>("#settings-btn");
+      const seaBtnAgain =
+        container.querySelector<HTMLButtonElement>("#sea-forecast-btn");
       if (showedKeyFormAfterError) {
         if (pngAgain) pngAgain.disabled = false;
         if (settingsAgain) settingsAgain.disabled = false;
+        if (seaBtnAgain) seaBtnAgain.disabled = false;
         return;
       }
       if (refreshAgain) {
@@ -648,6 +793,7 @@ function bindWeatherRefresh(container: HTMLElement, apiKey: string) {
       }
       if (pngAgain) pngAgain.disabled = false;
       if (settingsAgain) settingsAgain.disabled = false;
+      if (seaBtnAgain) seaBtnAgain.disabled = false;
     }
   });
 }

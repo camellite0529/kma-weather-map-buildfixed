@@ -29,6 +29,52 @@
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
 }
 
+.sea-forecast-dialog {
+  width: min(520px, 100%);
+}
+
+.sea-forecast-list {
+  margin: 12px 0 14px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  display: grid;
+  gap: 0;
+}
+
+.sea-forecast-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 2px;
+  background: transparent;
+}
+
+.sea-forecast-row + .sea-forecast-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.sea-forecast-region {
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.sea-forecast-value {
+  font-size: 0.82rem;
+  color: #0f172a;
+}
+
+.sea-forecast-summary {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #e5edf8;
+  color: #111827;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .api-key-dialog h2 {
   margin: 0 0 8px;
   font-size: 1.25rem;
@@ -443,6 +489,10 @@ body {
   white-space: nowrap;
   margin-top: 1.2mm;
   margin-bottom: 0;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  font-family: inherit;
 }
 
 .notice-link-btn:hover,
@@ -519,9 +569,9 @@ body {
 }
 
 .precip-card {
-  --precip-label-col: 13mm;
+  --precip-label-col: 14.5mm;
   --precip-value-col: 12mm;
-  --precip-col-gap: 2.2mm;
+  --precip-track-values-gap: 2.2mm;
 }
 
 .precip-legend {
@@ -567,8 +617,8 @@ body {
 .precip-scale {
   position: relative;
   height: 3mm;
-  margin: 0 calc(var(--precip-value-col) + var(--precip-col-gap)) 0.6mm
-    calc(var(--precip-label-col) + var(--precip-col-gap));
+  margin: 0 calc(var(--precip-value-col) + var(--precip-track-values-gap)) 0.6mm
+    var(--precip-label-col);
   font-size: 2.35mm;
   color: var(--muted);
 }
@@ -582,23 +632,36 @@ body {
 .precip-chart {
   display: flex;
   flex-direction: column;
-  gap: 1.1mm;
+  gap: 0;
 }
 
 .precip-row-item {
   display: grid;
   grid-template-columns: var(--precip-label-col) 1fr var(--precip-value-col);
-  gap: var(--precip-col-gap);
+  column-gap: 0;
   align-items: center;
 }
 
+.precip-row-item + .precip-row-item {
+  padding-top: 1.1mm;
+  border-top: 1px solid var(--line);
+}
+
+.precip-row-item + .precip-row-item.precip-row-strong {
+  border-top-width: 2px;
+  border-top-color: rgba(0, 0, 0, 0.17);
+}
+
 .precip-label {
-  font-size: 3mm;
-  font-weight: 700;
+  font-size: 3.65mm;
+  font-weight: 500;
   white-space: nowrap;
+  padding-right: 1mm;
+  box-sizing: border-box;
 }
 
 .precip-track {
+  margin-right: var(--precip-track-values-gap);
   position: relative;
   height: 7mm;
   border-left: 1px solid var(--line);
