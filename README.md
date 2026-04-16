@@ -12,7 +12,7 @@ npm run dev
 
 배포는 `npm run build` 후 `frontend/dist`를 정적 호스팅하면 됩니다.
 
-## Vercel 최소 구성(사용자별 11시 vs 17시 하이라이트 공유)
+## 11시 vs 17시 변경사항 하이라이트 관련
 
 `frontend/api/map-baseline.ts`, `frontend/api/user-key.ts`, `frontend/api/collect-baseline.ts`를 사용하면, 각 사용자가 입력한 키 기준으로 11시 기준값을 서버(KV)에 저장하고 17시에 같은 키 사용자끼리 비교할 수 있습니다.
 
