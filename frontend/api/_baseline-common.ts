@@ -41,8 +41,7 @@ function digestToHex(buf: ArrayBuffer): string {
 }
 
 /**
- * Edge: `globalThis.crypto.subtle`만 사용.
- * Node(Vercel): subtle 없을 때만 `node:crypto`를 동적 import (정적 import는 번들/런타임 충돌 방지).
+ * Edge/Node 공통: Web Crypto만 사용해 런타임 충돌을 피한다.
  */
 export async function sha256Hex(value: string): Promise<string> {
   const data = new TextEncoder().encode(value);
@@ -51,12 +50,7 @@ export async function sha256Hex(value: string): Promise<string> {
   if (globalSubtle) {
     return digestToHex(await globalSubtle.digest("SHA-256", data));
   }
-
-  const nodeCrypto = await import("node:crypto");
-  if (nodeCrypto.webcrypto?.subtle) {
-    return digestToHex(await nodeCrypto.webcrypto.subtle.digest("SHA-256", data));
-  }
-  return nodeCrypto.createHash("sha256").update(value).digest("hex");
+  throw new Error("Web Crypto API is unavailable in this runtime.");
 }
 
 export function kstDateYmd(now = new Date()): string {
