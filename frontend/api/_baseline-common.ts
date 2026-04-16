@@ -34,13 +34,20 @@ export function isValidKeyHash(value: string): boolean {
   return /^[a-f0-9]{64}$/.test(value);
 }
 
-/** Node·Edge 공통 (Vercel 서버리스에서 `node:crypto` 이슈 회피) */
+/**
+ * Vercel Node 런타임에서 `globalThis.crypto.subtle`이 없는 경우가 있어
+ * `node:crypto`의 `webcrypto`를 사용한다.
+ */
 export async function sha256Hex(value: string): Promise<string> {
-  const data = new TextEncoder().encode(value);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const subtle = webcrypto.subtle;
+  if (subtle) {
+    const data = new TextEncoder().encode(value);
+    const hashBuffer = await subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+  return createHash("sha256").update(value).digest("hex");
 }
 
 export function kstDateYmd(now = new Date()): string {
