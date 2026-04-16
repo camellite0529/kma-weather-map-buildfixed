@@ -48,12 +48,13 @@ export function kstDateYmd(now = new Date()): string {
   return `${yyyy}${mm}${dd}`;
 }
 
-function kvBaseUrl() {
-  return process.env.KV_REST_API_URL;
+function kvBaseUrl(): string {
+  const raw = String(process.env.KV_REST_API_URL ?? "").trim();
+  return raw.replace(/\/+$/, "");
 }
 
-function kvToken() {
-  return process.env.KV_REST_API_TOKEN;
+function kvToken(): string {
+  return String(process.env.KV_REST_API_TOKEN ?? "").trim();
 }
 
 export function baselineKvKey(date: string, keyHash: string): string {
@@ -73,11 +74,21 @@ export async function kvGet<T>(key: string): Promise<T | null> {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
+  const text = await response.text();
   if (!response.ok) {
-    throw new Error(`KV GET failed: ${response.status}`);
+    // Upstash: missing key is often 404; treat as empty baseline
+    if (response.status === 404) return null;
+    throw new Error(
+      `KV GET failed: ${response.status} ${text.slice(0, 200)}`.trim(),
+    );
   }
 
-  const json = (await response.json()) as { result?: T | null };
+  let json: { result?: T | null };
+  try {
+    json = JSON.parse(text) as { result?: T | null };
+  } catch {
+    throw new Error(`KV GET invalid JSON: ${text.slice(0, 200)}`);
+  }
   return json.result ?? null;
 }
 
@@ -102,7 +113,10 @@ export async function kvSet<T>(key: string, value: T, exSeconds?: number): Promi
     body: JSON.stringify(body),
   });
 
+  const text = await response.text();
   if (!response.ok) {
-    throw new Error(`KV SET failed: ${response.status}`);
+    throw new Error(
+      `KV SET failed: ${response.status} ${text.slice(0, 200)}`.trim(),
+    );
   }
 }

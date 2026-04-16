@@ -10,6 +10,29 @@ import {
 
 const BASELINE_TTL_SECONDS = 60 * 60 * 48;
 
+function parseRequestBody(req: any): BaselinePayload | null {
+  const raw = req.body;
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as BaselinePayload;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof Buffer !== "undefined" && Buffer.isBuffer(raw)) {
+    try {
+      return JSON.parse(raw.toString("utf8")) as BaselinePayload;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw === "object") {
+    return raw as BaselinePayload;
+  }
+  return null;
+}
+
 function headerValue(headers: any, key: string): string {
   const raw = headers?.[key] ?? headers?.[key.toLowerCase()] ?? "";
   return String(raw).trim();
@@ -46,7 +69,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === "POST") {
-      const body = req.body as BaselinePayload;
+      const body = parseRequestBody(req);
       if (
         !body ||
         typeof body !== "object" ||

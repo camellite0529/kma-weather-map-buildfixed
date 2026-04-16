@@ -8,5 +8,10 @@
       "path": "/api/collect-baseline",
       "schedule": "20 2 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }
