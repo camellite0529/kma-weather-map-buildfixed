@@ -443,7 +443,7 @@ body {
 }
 
 .layout-map {
-  margin-top: 0.8mm;
+  margin-top: 0.9mm;
 }
 
 .layout-map .section-header h2 {
@@ -452,7 +452,7 @@ body {
 }
 
 .layout-map .map-shell {
-  margin-top: 0;
+  margin-top: 0.1mm;
 }
 
 .right-column {
@@ -574,7 +574,7 @@ body {
 }
 
 .precip-card {
-  margin-top: -0.8mm;
+  margin-top: -2.4mm;
 }
 
 .precip-card .section-header {
@@ -584,14 +584,14 @@ body {
 }
 
 .precip-card .section-header h2 {
-  font-size: 4.5mm;
+  font-size: 4.75mm;
   line-height: 1.05;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .precip-card {
-  --precip-label-col: 14.5mm;
+  --precip-label-col: 12.0mm;
   --precip-value-col: 12mm;
   --precip-track-values-gap: 2.2mm;
 }
@@ -599,7 +599,8 @@ body {
 .precip-legend {
   display: flex;
   gap: 1.5mm;
-  font-size: 4mm;
+  font-size: 3.0mm;
+  font-weight: 500;
   color: var(--muted);
   white-space: nowrap;
   flex-shrink: 0;
@@ -611,7 +612,7 @@ body {
   justify-content: center;
   align-items: flex-start;
   gap: 0.45mm;
-  font-size: 3mm;
+  font-size: 3.1mm;
   white-space: nowrap;
 }
 
@@ -665,20 +666,20 @@ body {
 }
 
 .precip-row-item + .precip-row-item {
-  padding-top: 1.1mm;
+  padding-top: 1.0mm;
   border-top: 1px solid var(--line);
 }
 
 .precip-row-item + .precip-row-item.precip-row-strong {
-  border-top-width: 2px;
-  border-top-color: rgba(0, 0, 0, 0.17);
+  border-top-width: 2.0px;
+  border-top-color: rgba(0, 0, 0, 0.1);
 }
 
 .precip-label {
-  font-size: 3.65mm;
+  font-size: 3.5mm;
   font-weight: 500;
   white-space: nowrap;
-  padding-right: 1mm;
+  padding-right: 0.5mm;
   box-sizing: border-box;
 }
 
@@ -777,7 +778,7 @@ body {
 
 .forecast-table-grid th {
   width: 8mm;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .forecast-table-grid tr:last-child th,
@@ -806,7 +807,7 @@ body {
 
 .dust-time,
 .dust-announced {
-  font-size: 2.3mm;
+  font-size: 2.5mm;
   color: var(--muted);
   white-space: nowrap;
 }
@@ -862,7 +863,7 @@ body {
 }
 
 .dust-row-label {
-  font-size: 3.4mm;
+  font-size: 3.35mm;
   font-weight: 700;
   white-space: nowrap;
 }

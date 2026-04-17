@@ -434,9 +434,7 @@ function renderPage(
           <div class="marker-line">
             <strong class="marker-city">${escapeHtml(item.city)}</strong>
             <span class="marker-temp">
-              <span${minChanged ? ` class="marker-value-changed"` : ""}>${tempText(item.tomorrow.minTemp)}</span>
-              <span> / </span>
-              <span${maxChanged ? ` class="marker-value-changed"` : ""}>${tempText(item.tomorrow.maxTemp)}</span>
+              <span${minChanged ? ` class="marker-value-changed"` : ""}>${tempText(item.tomorrow.minTemp)}</span><span> / </span><span${maxChanged ? ` class="marker-value-changed"` : ""}>${tempText(item.tomorrow.maxTemp)}</span>
             </span>
           </div>
           <div class="marker-tooltip" aria-hidden="true">
@@ -581,8 +579,10 @@ function renderPage(
           <section class="card layout-map">
             <div class="map-shell">
               <div class="map-stage">
-                <h2 class="map-title">전국날씨(℃)</h2>
-                <p class="map-national-range">${escapeHtml(weather.tomorrowNationalTempRangeText)}</p>
+                <div class="map-title-stack">
+                  <h2 class="map-title">전국날씨(℃)</h2>
+                  <p class="map-national-range">${escapeHtml(weather.tomorrowNationalTempRangeText)}</p>
+                </div>
                 <img src="${import.meta.env.BASE_URL}map-bg.png" alt="대한민국 지도" class="map-image" />
                 ${markersHtml}
               </div>

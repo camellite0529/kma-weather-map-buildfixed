@@ -324,7 +324,7 @@ function buildTomorrowNationalTempRangeText(rows: WeatherCityData[]): string {
   const maxLow = Math.min(...tomorrowMaxs);
   const maxHigh = Math.max(...tomorrowMaxs);
 
-  return `전국 최저기온 ${formatTempValue(minLow)}~${formatTempValue(minHigh)} / 최고기온 ${formatTempValue(maxLow)}~${formatTempValue(maxHigh)}`;
+  return `최저기온 ${formatTempValue(minLow)}~${formatTempValue(minHigh)}℃\n최고기온 ${formatTempValue(maxLow)}~${formatTempValue(maxHigh)}℃`;
 }
 
 function extractOverviewTextFromJson(json: any): string {
