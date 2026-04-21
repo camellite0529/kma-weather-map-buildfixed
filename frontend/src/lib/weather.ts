@@ -307,7 +307,7 @@ function formatTempValue(value: number): string {
 }
 
 function buildTomorrowNationalTempRangeText(rows: WeatherCityData[]): string {
-  const excludedCities = new Set(["이어도", "울릉도", "독도"]);
+  const excludedCities = new Set(["이어도", "울릉도", "독도", "제주"]);
   const nationwideRows = rows.filter((row) => !excludedCities.has(row.city));
 
   const tomorrowMins = nationwideRows
