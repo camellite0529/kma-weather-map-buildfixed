@@ -365,7 +365,8 @@ body {
 }
 
 .today-note-short {
-  flex: 1 1 0;
+  flex: 0 1 70mm;
+  max-width: 70mm;
   min-width: 0;
   width: auto;
   height: 9mm;
@@ -381,6 +382,30 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.today-note-save-btn {
+  flex: 0 0 auto;
+  height: 9mm;
+  padding: 0 3.2mm;
+  border: none;
+  border-radius: 1.6mm;
+  background: #e5e7eb;
+  color: #4b5563;
+  font-family: inherit;
+  font-size: 3.4mm;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.today-note-save-btn:hover {
+  background: #d1d5db;
+}
+
+.today-note-save-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .today-note-long {

@@ -43,11 +43,10 @@ const BASELINE_TIMER_MINUTE = 30;
 let latestWeatherSnapshot: WeatherResult | null = null;
 let latestWeatherApiKey: string | null = null;
 let baselineSaveTimerId: number | null = null;
-let noteSaveTimerId: number | null = null;
 let currentNoteTitle = "";
 let currentNoteBody = "";
 
-/** 춘천–강릉, 세종–청주, 전주–부산 구간처럼 묶음 경계(해당 행 위 가로선을 굵게) */
+/** 춘천–강릉, 세종–청주, 전주–부산 구간 행 위 가로선을 굵게) */
 const PRECIP_STRONG_DIVIDER_BEFORE_CITY = new Set(["강릉", "청주", "부산"]);
 
 type DataLoadToolbarState = "loading" | "complete" | "error";
@@ -538,10 +537,13 @@ function renderPage(
                 placeholder="날씨 제목 여기에"
                 value="${escapeHtml(noteTitle)}"
               />
+              <button type="button" class="today-note-save-btn" id="today-note-save-btn">
+                저장
+              </button>
             </div>
             <textarea
               class="today-note-long"
-              placeholder="여기에 본문을 입력해 주세요. 적은 내용은 이 컴퓨터에서만 저장됩니다. 프린트할 때 배경 그래픽에 꼭 체크!"
+              placeholder="여기에 적은 내용은 "저장" 버튼을 누르면 저장됩니다."
             >${escapeHtml(noteBody)}</textarea>
           </section>
           <div class="astro-side">
@@ -993,29 +995,30 @@ function bindWeatherRefresh(container: HTMLElement, apiKey: string) {
 function bindTodayNotePersistence(container: HTMLElement) {
   const titleEl = container.querySelector<HTMLInputElement>(".today-note-short");
   const bodyEl = container.querySelector<HTMLTextAreaElement>(".today-note-long");
-  if (!titleEl || !bodyEl) return;
+  const saveBtn = container.querySelector<HTMLButtonElement>("#today-note-save-btn");
+  if (!titleEl || !bodyEl || !saveBtn) return;
 
-  const save = () => {
-    const title = titleEl.value;
-    const body = bodyEl.value;
-    currentNoteTitle = title;
-    currentNoteBody = body;
+  const updateDraft = () => {
+    currentNoteTitle = titleEl.value;
+    currentNoteBody = bodyEl.value;
     localStorage.setItem(STORAGE_NOTE_DATE, getTodayDateString());
-
-    if (!latestWeatherApiKey) return;
-    if (noteSaveTimerId != null) {
-      window.clearTimeout(noteSaveTimerId);
-    }
-    noteSaveTimerId = window.setTimeout(async () => {
-      try {
-        await saveTodayNote(latestWeatherApiKey!, title, body);
-      } catch (error) {
-        console.error("Failed to save today note:", error);
-      }
-    }, 350);
   };
-  titleEl.addEventListener("input", save);
-  bodyEl.addEventListener("input", save);
+
+  titleEl.addEventListener("input", updateDraft);
+  bodyEl.addEventListener("input", updateDraft);
+
+  saveBtn.addEventListener("click", async () => {
+    updateDraft();
+    if (!latestWeatherApiKey) return;
+    saveBtn.disabled = true;
+    try {
+      await saveTodayNote(latestWeatherApiKey, titleEl.value, bodyEl.value);
+    } catch (error) {
+      console.error("Failed to save today note:", error);
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
 }
 
 function renderApiKeyDialogHtml(saved: string, variant: "fullscreen" | "settings") {
@@ -1032,7 +1035,7 @@ function renderApiKeyDialogHtml(saved: string, variant: "fullscreen" | "settings
       <div class="api-key-dialog" role="dialog" aria-modal="true" aria-labelledby="api-key-title">
         <h2 id="api-key-title">API 키 입력</h2>
         <p class="api-key-hint">
-          공공데이터포털에서 발급받은 서비스 키를 입력하세요. 기상·미세먼지·천문 API에 동일하게 사용됩니다. 이 브라우저의 localStorage에 저장됩니다.
+          관리자는 공공데이터포털에서 (기상청)단기예보 통보문 조회서비스, (한국천문연구원)출몰시각 정보, (한국환경공단)에어코리아_대기오염정보 활용신청 뒤 '일반 인증키'를 재발급받아 동일한 서비스 키로 운영하세요. 인증키는 이 브라우저의 localStorage에 저장됩니다.
         </p>
         <form id="api-key-form">
           <div class="api-key-field">
