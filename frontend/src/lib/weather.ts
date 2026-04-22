@@ -37,9 +37,25 @@ const LAND_BASE_URL =
   `${kmaApiOrigin()}/1360000/VilageFcstMsgService/getLandFcst`;
 const LAND_OVERVIEW_BASE_URL =
   `${kmaApiOrigin()}/1360000/VilageFcstMsgService/getWthrSituation`;
+const FCST_ZONE_BASE_URL =
+  `${kmaApiOrigin()}/1360000/FcstZoneInfoService/getFcstZoneCd`;
 const REQUEST_TIMEOUT_MS = 12000;
 const CONCURRENCY = 5;
+const NATIONAL_TEMP_RANGE_CONCURRENCY = 10;
+const FCST_ZONE_PAGE_SIZE = 1000;
 const LAND_OVERVIEW_STN_ID = "108";
+const NATIONAL_TEMP_RANGE_REG_ID_START = "11B10101";
+const NATIONAL_TEMP_RANGE_REG_ID_END = "11G01001";
+const NATIONAL_TEMP_RANGE_EXCLUDED_CITY_NAMES = new Set([
+  "이어도",
+  "울릉도",
+  "독도",
+  "제주",
+  "서귀포",
+]);
+const NATIONAL_TEMP_RANGE_EXCLUDED_REG_IDS = new Set<string>([]);
+const NATIONAL_TEMP_RANGE_FORCE_INCLUDED_REG_IDS = new Set(["11D10501"]); // 영월
+const NATIONAL_TEMP_RANGE_FORCE_EXCLUDED_REG_IDS = new Set(["11D20201"]); // 대관령
 
 type WeatherWarning = {
   city: string;
@@ -61,6 +77,22 @@ export type WeatherResult = {
   warnings: WeatherWarning[];
 };
 
+type ForecastZone = {
+  regId: string;
+  regName: string;
+  regSp: string | null;
+};
+
+type NationalTempRangeRow = {
+  city: string;
+  regId: string;
+  tomorrow: DailyWeather;
+};
+
+const NATIONAL_TEMP_RANGE_REQUIRED_ZONES: ForecastZone[] = [
+  { regId: "11D10501", regName: "영월", regSp: "C" },
+];
+
 type StoredTomorrowRow = {
   city: string;
   tomorrow: DailyWeather;
@@ -74,6 +106,9 @@ type StoredMapHighlightBaseline = {
 };
 
 const MAP_BASELINE_LOCAL_KEY_PREFIX = "kma:map-baseline:";
+const MAP_CITY_REG_ID_BY_NAME = new Map(
+  MAP_CITIES.map((city) => [city.name, city.regId]),
+);
 
 function localBaselineKey(baseDate: string) {
   return `${MAP_BASELINE_LOCAL_KEY_PREFIX}${baseDate}`;
@@ -157,6 +192,177 @@ function buildLandOverviewRequestUrl(serviceKey: string): string {
     stnId: LAND_OVERVIEW_STN_ID,
   });
   return `${LAND_OVERVIEW_BASE_URL}?ServiceKey=${encodedServiceKey}&${params.toString()}`;
+}
+
+function buildFcstZoneRequestUrl(serviceKey: string, pageNo: number): string {
+  const encodedServiceKey = isLikelyEncodedKey(serviceKey)
+    ? serviceKey
+    : encodeURIComponent(serviceKey.trim());
+  const params = new URLSearchParams({
+    pageNo: String(pageNo),
+    numOfRows: String(FCST_ZONE_PAGE_SIZE),
+    dataType: "JSON",
+  });
+  return `${FCST_ZONE_BASE_URL}?ServiceKey=${encodedServiceKey}&${params.toString()}`;
+}
+
+function isNationalTempRangeExcluded(cityName: string, regId: string): boolean {
+  if (NATIONAL_TEMP_RANGE_EXCLUDED_CITY_NAMES.has(cityName)) return true;
+  if (NATIONAL_TEMP_RANGE_EXCLUDED_REG_IDS.has(regId)) return true;
+  if (NATIONAL_TEMP_RANGE_FORCE_EXCLUDED_REG_IDS.has(regId)) return true;
+  return false;
+}
+
+function isRegIdInNationalRange(regId: string): boolean {
+  return (
+    regId >= NATIONAL_TEMP_RANGE_REG_ID_START &&
+    regId <= NATIONAL_TEMP_RANGE_REG_ID_END
+  );
+}
+
+function isCityRegSp(regSp: string | null): boolean {
+  const value = String(regSp ?? "").trim().toUpperCase();
+  return value.startsWith("C");
+}
+
+function parseForecastZonesFromJson(json: any): {
+  totalCount: number;
+  zones: ForecastZone[];
+} {
+  const resultCode = json?.response?.header?.resultCode;
+  const resultMsg = json?.response?.header?.resultMsg;
+  if (resultCode && resultCode !== "00") {
+    throw new Error(`예보구역 API 응답 오류: ${resultCode} ${resultMsg ?? ""}`.trim());
+  }
+
+  const totalCount = Number(json?.response?.body?.totalCount ?? 0);
+  const rawItems = json?.response?.body?.items?.item;
+  const list = Array.isArray(rawItems)
+    ? rawItems
+    : rawItems
+      ? [rawItems]
+      : [];
+
+  const zones = list.flatMap((item: any) => {
+    const regId = String(item?.regId ?? "").trim();
+    const regName = String(item?.regName ?? "").trim();
+    const regSpRaw = String(item?.regSp ?? "").trim();
+    if (!regId || !regName) return [];
+    return [
+      {
+        regId,
+        regName,
+        regSp: regSpRaw || null,
+      },
+    ];
+  });
+
+  return {
+    totalCount: Number.isFinite(totalCount) && totalCount > 0 ? totalCount : zones.length,
+    zones,
+  };
+}
+
+async function fetchForecastZones(serviceKey: string): Promise<ForecastZone[]> {
+  const normalizedKey = normalizeServiceKey(serviceKey);
+  if (!normalizedKey) return [];
+
+  const firstUrl = buildFcstZoneRequestUrl(normalizedKey, 1);
+  const firstRes = await fetchWithTimeout(firstUrl);
+  if (!firstRes.ok) return [];
+  const firstRaw = await firstRes.text();
+
+  let firstJson: any;
+  try {
+    firstJson = JSON.parse(firstRaw);
+  } catch {
+    return [];
+  }
+
+  let firstPage: { totalCount: number; zones: ForecastZone[] };
+  try {
+    firstPage = parseForecastZonesFromJson(firstJson);
+  } catch {
+    return [];
+  }
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(firstPage.totalCount / FCST_ZONE_PAGE_SIZE),
+  );
+  const collected = [...firstPage.zones];
+
+  for (let pageNo = 2; pageNo <= totalPages; pageNo += 1) {
+    let res: Response;
+    try {
+      res = await fetchWithTimeout(buildFcstZoneRequestUrl(normalizedKey, pageNo));
+    } catch {
+      continue;
+    }
+    if (!res.ok) continue;
+
+    const raw = await res.text();
+    let json: any;
+    try {
+      json = JSON.parse(raw);
+    } catch {
+      continue;
+    }
+
+    try {
+      const parsed = parseForecastZonesFromJson(json);
+      collected.push(...parsed.zones);
+    } catch {
+      // 일부 페이지 실패는 건너뜀
+    }
+  }
+
+  const unique = new Map<string, ForecastZone>();
+  for (const zone of collected) {
+    if (!unique.has(zone.regId)) {
+      unique.set(zone.regId, zone);
+    }
+  }
+  return [...unique.values()];
+}
+
+function pickNationalTempRangeZones(zones: ForecastZone[]): ForecastZone[] {
+  const inCodeRange = zones.filter(
+    (zone) =>
+      isRegIdInNationalRange(zone.regId) &&
+      !isNationalTempRangeExcluded(zone.regName, zone.regId),
+  );
+  const forcedIncluded = inCodeRange.filter((zone) =>
+    NATIONAL_TEMP_RANGE_FORCE_INCLUDED_REG_IDS.has(zone.regId),
+  );
+  const cityOnly = inCodeRange.filter((zone) => isCityRegSp(zone.regSp));
+  if (cityOnly.length === 0) return inCodeRange;
+
+  const merged = new Map<string, ForecastZone>();
+  for (const zone of [...cityOnly, ...forcedIncluded]) {
+    merged.set(zone.regId, zone);
+  }
+  return [...merged.values()];
+}
+
+function mergeNationalTempRangeRows(
+  ...groups: NationalTempRangeRow[][]
+): NationalTempRangeRow[] {
+  const unique = new Map<string, NationalTempRangeRow>();
+  for (const group of groups) {
+    for (const row of group) {
+      if (!unique.has(row.regId)) {
+        unique.set(row.regId, row);
+      }
+    }
+  }
+  return [...unique.values()];
+}
+
+function requiredNationalTempRangeZones(): ForecastZone[] {
+  return NATIONAL_TEMP_RANGE_REQUIRED_ZONES.filter(
+    (zone) => !isNationalTempRangeExcluded(zone.regName, zone.regId),
+  );
 }
 
 async function fetchJsonWithValidation(url: string, cityName: string) {
@@ -306,18 +512,168 @@ function formatTempValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-function buildTomorrowNationalTempRangeText(rows: WeatherCityData[]): string {
-  const excludedCities = new Set(["이어도", "울릉도", "독도", "제주"]);
-  const nationwideRows = rows.filter((row) => !excludedCities.has(row.city));
+type TomorrowTempRange = {
+  minLow: number;
+  minHigh: number;
+  maxLow: number;
+  maxHigh: number;
+};
 
-  const tomorrowMins = nationwideRows
+function parseTempRangePair(
+  text: string,
+  patterns: RegExp[],
+): [number, number] | null {
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (!match) continue;
+    const a = Number(match[1]);
+    const b = Number(match[2]);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    return [Math.min(a, b), Math.max(a, b)];
+  }
+  return null;
+}
+
+function parseTomorrowNationalTempRangeFromOverview(
+  overviewText: string,
+): TomorrowTempRange | null {
+  const normalized = overviewText.replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+
+  const minPair = parseTempRangePair(normalized, [
+    /내일[^.。]{0,220}?(?:아침\s*)?(?:최저\s*)?기온(?:은|이)?\s*(-?\d+(?:\.\d+)?)\s*[~∼\-–—]\s*(-?\d+(?:\.\d+)?)\s*(?:도|℃|°C|C)?/,
+    /아침\s*(?:최저\s*)?기온(?:은|이)?\s*(-?\d+(?:\.\d+)?)\s*[~∼\-–—]\s*(-?\d+(?:\.\d+)?)\s*(?:도|℃|°C|C)?/,
+  ]);
+  const maxPair = parseTempRangePair(normalized, [
+    /내일[^.。]{0,240}?(?:낮|한낮)\s*(?:최고\s*)?기온(?:은|이)?\s*(-?\d+(?:\.\d+)?)\s*[~∼\-–—]\s*(-?\d+(?:\.\d+)?)\s*(?:도|℃|°C|C)?/,
+    /내일[^.。]{0,240}?최고\s*기온(?:은|이)?\s*(-?\d+(?:\.\d+)?)\s*[~∼\-–—]\s*(-?\d+(?:\.\d+)?)\s*(?:도|℃|°C|C)?/,
+    /내일[^.。]{0,240}?(?:낮|한낮)\s*기온(?:은|이)?\s*(-?\d+(?:\.\d+)?)\s*[~∼\-–—]\s*(-?\d+(?:\.\d+)?)\s*(?:도|℃|°C|C)?/,
+    /(?:낮|한낮)\s*(?:최고\s*)?기온(?:은|이)?\s*(-?\d+(?:\.\d+)?)\s*[~∼\-–—]\s*(-?\d+(?:\.\d+)?)\s*(?:도|℃|°C|C)?/,
+  ]);
+
+  if (!minPair || !maxPair) return null;
+
+  return {
+    minLow: minPair[0],
+    minHigh: minPair[1],
+    maxLow: maxPair[0],
+    maxHigh: maxPair[1],
+  };
+}
+
+function toDefaultNationalTempRangeRows(rows: WeatherCityData[]): NationalTempRangeRow[] {
+  const unique = new Map<string, NationalTempRangeRow>();
+  for (const row of rows) {
+    const regId = MAP_CITY_REG_ID_BY_NAME.get(row.city);
+    if (!regId) continue;
+    if (isNationalTempRangeExcluded(row.city, regId)) continue;
+    unique.set(regId, {
+      city: row.city,
+      regId,
+      tomorrow: row.tomorrow,
+    });
+  }
+  return [...unique.values()];
+}
+
+async function fetchNationalTempRangeSupplementRows(
+  serviceKey: string,
+  zones: ForecastZone[],
+  existingRegIds: Set<string>,
+): Promise<NationalTempRangeRow[]> {
+  const missingZones = zones.filter((zone) => !existingRegIds.has(zone.regId));
+  if (missingZones.length === 0) return [];
+
+  const settled = await runInBatches(
+    missingZones,
+    NATIONAL_TEMP_RANGE_CONCURRENCY,
+    async (zone) => {
+      const pseudoCity: City = {
+        name: zone.regName,
+        regId: zone.regId,
+        lat: 0,
+        lon: 0,
+      };
+      const items = await fetchLandForecast(serviceKey, pseudoCity);
+      const land = summarizeLandForecast(items);
+      return {
+        city: zone.regName,
+        regId: zone.regId,
+        tomorrow: createDailyWeatherFromLand(land.tomorrowAm, land.tomorrowPm),
+      } satisfies NationalTempRangeRow;
+    },
+  );
+
+  return settled.flatMap((item) =>
+    item.status === "fulfilled" ? [item.value] : [],
+  );
+}
+
+async function collectNationalTempRangeRows(
+  serviceKey: string,
+  rows: WeatherCityData[],
+): Promise<NationalTempRangeRow[]> {
+  const defaultRows = toDefaultNationalTempRangeRows(rows);
+  const requiredZones = requiredNationalTempRangeZones();
+
+  const defaultRegIds = new Set(defaultRows.map((row) => row.regId));
+  const requiredRows = await fetchNationalTempRangeSupplementRows(
+    serviceKey,
+    requiredZones,
+    defaultRegIds,
+  );
+  const fallbackRows = mergeNationalTempRangeRows(defaultRows, requiredRows);
+
+  try {
+    const zones = pickNationalTempRangeZones(await fetchForecastZones(serviceKey));
+    if (zones.length === 0) return fallbackRows;
+
+    const targetZoneByRegId = new Map(zones.map((zone) => [zone.regId, zone]));
+    for (const zone of requiredZones) {
+      targetZoneByRegId.set(zone.regId, zone);
+    }
+    const targetZones = [...targetZoneByRegId.values()];
+
+    const zoneRegIdSet = new Set(targetZones.map((zone) => zone.regId));
+    const fromMapRows = fallbackRows.filter((row) =>
+      zoneRegIdSet.has(row.regId),
+    );
+    const existingRegIds = new Set(fromMapRows.map((row) => row.regId));
+    const supplementRows = await fetchNationalTempRangeSupplementRows(
+      serviceKey,
+      targetZones,
+      existingRegIds,
+    );
+    return mergeNationalTempRangeRows(fromMapRows, supplementRows);
+  } catch {
+    return fallbackRows;
+  }
+}
+
+function buildTomorrowNationalTempRangeText(
+  rows: WeatherCityData[],
+  nationalRangeRows: NationalTempRangeRow[],
+  landOverviewText: string,
+): string {
+  const sourceRows =
+    nationalRangeRows.length > 0
+      ? nationalRangeRows
+      : toDefaultNationalTempRangeRows(rows);
+
+  const tomorrowMins = sourceRows
     .map((row) => row.tomorrow.minTemp)
     .filter((value): value is number => value != null && Number.isFinite(value));
-  const tomorrowMaxs = nationwideRows
+  const tomorrowMaxs = sourceRows
     .map((row) => row.tomorrow.maxTemp)
     .filter((value): value is number => value != null && Number.isFinite(value));
 
-  if (tomorrowMins.length === 0 || tomorrowMaxs.length === 0) return "-";
+  if (tomorrowMins.length === 0 || tomorrowMaxs.length === 0) {
+    const overviewRange = parseTomorrowNationalTempRangeFromOverview(landOverviewText);
+    if (overviewRange) {
+      return `최저기온 ${formatTempValue(overviewRange.minLow)}~${formatTempValue(overviewRange.minHigh)}℃\n최고기온 ${formatTempValue(overviewRange.maxLow)}~${formatTempValue(overviewRange.maxHigh)}℃`;
+    }
+    return "-";
+  }
 
   const minLow = Math.min(...tomorrowMins);
   const minHigh = Math.max(...tomorrowMins);
@@ -627,18 +983,25 @@ export async function getWeatherData(kmaServiceKey: string): Promise<WeatherResu
     ({ announceTime: _announceTime, ...rest }) => rest,
   );
   const base = summarizeBase(latestBase);
-  const highlightedData = await applyStoredMapHighlights(
-    weatherData,
-    base.baseDate,
-    base.baseTime,
-    kmaServiceKey,
-  );
+  const [highlightedData, nationalRangeRows] = await Promise.all([
+    applyStoredMapHighlights(
+      weatherData,
+      base.baseDate,
+      base.baseTime,
+      kmaServiceKey,
+    ),
+    collectNationalTempRangeRows(kmaServiceKey, weatherData),
+  ]);
 
   return {
     base,
     updatedAt: new Date().toISOString(),
     landOverviewText,
-    tomorrowNationalTempRangeText: buildTomorrowNationalTempRangeText(weatherData),
+    tomorrowNationalTempRangeText: buildTomorrowNationalTempRangeText(
+      weatherData,
+      nationalRangeRows,
+      landOverviewText,
+    ),
     data: highlightedData,
     warnings,
   };

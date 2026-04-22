@@ -371,7 +371,7 @@ body {
   width: auto;
   height: 9mm;
   border: none;
-  background: #f1f1f1;
+  background: #f5f5f5;
   font-family: inherit;
   font-size: 4.8mm;
   font-weight: 700;
@@ -384,11 +384,17 @@ body {
   text-overflow: ellipsis;
 }
 
+.today-note-long-wrap {
+  position: relative;
+}
+
 .today-note-save-btn {
-  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  right: 2.4mm;
+  bottom: 2.2mm;
   min-height: 6.2mm;
   padding: 0 2.2mm;
   border: none;
@@ -416,12 +422,12 @@ body {
   min-height: 21.5mm;
   resize: none;
   border: none;
-  background: #f1f1f1;
+  background: #f5f5f5;
   font-family: inherit;
   font-size: 4.0mm;
   line-height: 1.35;
   outline: none;
-  padding: 2.2mm 2.4mm;
+  padding: 2.2mm 20mm 10mm 2.4mm;
   border-radius: 1.6mm;
   overflow-y: auto;
   scrollbar-width: none;

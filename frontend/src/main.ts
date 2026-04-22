@@ -530,21 +530,23 @@ function renderPage(
         <div class="top-layout">
           <section class="card today-note-section">
             <div class="today-note-top">
-              <div class="today-note-title">오늘의 날씨</div>
+              <div class="today-note-title">오늘의 노트</div>
               <input
                 class="today-note-short"
                 type="text"
-                placeholder="날씨 제목 여기에"
+                placeholder="노트 제목 쓰기"
                 value="${escapeHtml(noteTitle)}"
               />
+            </div>
+            <div class="today-note-long-wrap">
+              <textarea
+                class="today-note-long"
+                placeholder="여기에 메모 내용을 쓰고 &quot;저장&quot; 버튼을 누르면 저장됩니다."
+              >${escapeHtml(noteBody)}</textarea>
               <button type="button" class="today-note-save-btn" id="today-note-save-btn">
                 저장
               </button>
             </div>
-            <textarea
-              class="today-note-long"
-              placeholder="여기에 적은 내용은 "저장" 버튼을 누르면 저장됩니다."
-            >${escapeHtml(noteBody)}</textarea>
           </section>
           <div class="astro-side">
             <div class="notice-button-row">
