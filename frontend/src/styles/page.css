@@ -427,8 +427,9 @@ body {
   font-size: 4.0mm;
   line-height: 1.35;
   outline: none;
-  padding: 2.2mm 20mm 10mm 2.4mm;
+  padding: 2.2mm 2.4mm 10mm 2.4mm;
   border-radius: 1.6mm;
+  box-sizing: border-box;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;

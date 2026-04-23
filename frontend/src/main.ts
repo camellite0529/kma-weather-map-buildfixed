@@ -1012,9 +1012,18 @@ function bindTodayNotePersistence(container: HTMLElement) {
   saveBtn.addEventListener("click", async () => {
     updateDraft();
     if (!latestWeatherApiKey) return;
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    const nextTitle = titleEl.value;
+    const nextBody = bodyEl.value;
+    currentNoteTitle = nextTitle;
+    currentNoteBody = nextBody;
+
     saveBtn.disabled = true;
     try {
-      await saveTodayNote(latestWeatherApiKey, titleEl.value, bodyEl.value);
+      await saveTodayNote(latestWeatherApiKey, nextTitle, nextBody);
     } catch (error) {
       console.error("Failed to save today note:", error);
     } finally {

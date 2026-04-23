@@ -11,31 +11,60 @@
 export type TodayNotePayload = {
   title: string;
   body: string;
+  shortText?: string;
+  longText?: string;
 };
 
 const TODAY_NOTE_TTL_SECONDS = 60 * 60 * 48;
 
+type TodayNotePayloadLike = Partial<{
+  title: string;
+  body: string;
+  short: string;
+  long: string;
+  shortText: string;
+  longText: string;
+}>;
+
 function parseRequestBody(req: any): TodayNotePayload | null {
   const raw = req.body;
   if (raw == null) return null;
+  let parsed: unknown;
+
   if (typeof raw === "string") {
     try {
-      return JSON.parse(raw) as TodayNotePayload;
+      parsed = JSON.parse(raw) as TodayNotePayload;
     } catch {
       return null;
     }
-  }
-  if (raw instanceof Uint8Array) {
+  } else if (raw instanceof Uint8Array) {
     try {
-      return JSON.parse(new TextDecoder().decode(raw)) as TodayNotePayload;
+      parsed = JSON.parse(new TextDecoder().decode(raw)) as TodayNotePayload;
     } catch {
       return null;
     }
+  } else if (typeof raw === "object") {
+    parsed = raw as TodayNotePayload;
+  } else {
+    return null;
   }
-  if (typeof raw === "object") {
-    return raw as TodayNotePayload;
-  }
-  return null;
+
+  if (!parsed || typeof parsed !== "object") return null;
+  const source = parsed as TodayNotePayloadLike;
+  const title = [source.title, source.shortText, source.short].find(
+    (value): value is string => typeof value === "string",
+  );
+  const body = [source.body, source.longText, source.long].find(
+    (value): value is string => typeof value === "string",
+  );
+
+  if (title == null && body == null) return null;
+  return {
+    title: title ?? "",
+    body: body ?? "",
+    shortText: title ?? "",
+    longText: body ?? "",
+  };
 }
 
 function headerValue(headers: any, key: string): string {
@@ -72,7 +101,19 @@ export default async function handler(req: any, res: any) {
         return;
       }
       const payload = await kvGet<TodayNotePayload>(todayNoteKvKey(date, keyHash));
-      res.status(200).json({ ok: true, payload });
+      if (!payload) {
+        res.status(200).json({ ok: true, payload: null });
+        return;
+      }
+      res.status(200).json({
+        ok: true,
+        payload: {
+          title: payload.title ?? payload.shortText ?? "",
+          body: payload.body ?? payload.longText ?? "",
+          shortText: payload.shortText ?? payload.title ?? "",
+          longText: payload.longText ?? payload.body ?? "",
+        },
+      });
       return;
     }
 
@@ -105,6 +146,8 @@ export default async function handler(req: any, res: any) {
         {
           title: body.title,
           body: body.body,
+          shortText: body.title,
+          longText: body.body,
         },
         TODAY_NOTE_TTL_SECONDS,
       );
