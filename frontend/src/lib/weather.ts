@@ -38,7 +38,8 @@ const NATIONAL_TEMP_RANGE_EXCLUDED_CITY_NAMES = new Set([
   "독도",
   "제주",
   "서귀포",
-  "대관령"
+  "대관령",
+  "백령도"
 ]);
 const NATIONAL_TEMP_RANGE_FORCE_INCLUDED_REG_IDS = new Set(["11D10501"]); // 영월
 const NATIONAL_TEMP_RANGE_FORCE_EXCLUDED_REG_IDS = new Set(["11D20201"]); // 대관령
